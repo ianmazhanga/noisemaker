@@ -94,7 +94,7 @@ function EpisodePlayer({ episode, onNavigate }: { episode: Episode; onNavigate: 
   const guests = getGuestsFor(episode.guestIds)
   return (
     <>
-      <LiteYouTube youtubeId={episode.youtubeId} title={episode.title} hd={episode.hd} autoload className="rounded-lg" />
+      <LiteYouTube youtubeId={episode.youtubeId} title={episode.title} hd={episode.hd} restricted={episode.restricted} autoload className="rounded-lg" />
       <div className="mt-5 flex flex-col gap-5 text-paper md:flex-row md:items-end md:justify-between">
         <div className="min-w-0">
           <p className="kicker text-muted-dark">
@@ -127,6 +127,7 @@ function ClipPlayer({ clip, onNavigate }: { clip: Clip; onNavigate: () => void }
         youtubeId={clip.youtubeId}
         title={clip.title}
         vertical
+        restricted={clip.restricted}
         autoload
         className="mx-auto w-[min(100%,calc(72vh*9/16))] shrink-0 rounded-lg md:mx-0 md:w-[min(420px,calc(84vh*9/16))]"
       />

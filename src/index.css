@@ -24,6 +24,8 @@
   --color-blue-ink: #1554d6;
   --color-yellow: #f7d046;
   --color-yellow-soft: #fbe592;
+  /* Form errors only: 6.5:1 on paper */
+  --color-danger: #b42318;
 
   --font-display: 'Archivo Variable', 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;

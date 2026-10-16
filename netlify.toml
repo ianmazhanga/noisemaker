@@ -1,0 +1,28 @@
+# Netlify build and hosting settings. Netlify rebuilds the site on every push to main,
+# including the hourly commits made by the YouTube sync (.github/workflows/sync-youtube.yml).
+
+[build]
+  # Content checks and tests run first, so broken data never reaches the live site.
+  command = "npm test && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+
+# Single-page app: unknown paths serve index.html (see public/_redirects).
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; font-src 'self'; frame-src https://www.youtube-nocookie.com; connect-src 'self'; form-action 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# Built files have content hashes in their names, so they can be cached for a year.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

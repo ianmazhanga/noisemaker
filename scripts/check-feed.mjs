@@ -1,11 +1,10 @@
 /**
- * Lists recent uploads that aren't in the site's data yet. Run with
- * `npm run check:feed`.
+ * Quick check, with no API key, for recent uploads the hourly YouTube sync
+ * hasn't picked up yet. Run with `npm run check:feed`.
  *
- * Uses the channel's public RSS feed: no API key, no quota, but only the 15
- * most recent uploads and no durations. Add new videos to
- * src/data/episodes.ts or src/data/clips.ts by hand, with the duration from
- * YouTube. Full automation would need the YouTube Data API (see README).
+ * Uses the channel's public RSS feed, which only covers the 15 most recent
+ * uploads. If something is listed here for more than a couple of hours, check
+ * the "Sync YouTube videos" workflow on GitHub (see README).
  */
 import { readFile } from 'node:fs/promises'
 
@@ -15,11 +14,8 @@ const FEED = `https://www.youtube.com/feeds/videos.xml?channel_id=${CHANNEL_ID}`
 const decode = (s) =>
   s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
 
-const known = new Set()
-for (const file of ['src/data/episodes.ts', 'src/data/clips.ts']) {
-  const text = await readFile(new URL(`../${file}`, import.meta.url), 'utf8')
-  for (const [, id] of text.matchAll(/youtubeId: '([A-Za-z0-9_-]{11})'/g)) known.add(id)
-}
+const snapshot = JSON.parse(await readFile(new URL('../src/data/youtube.json', import.meta.url), 'utf8'))
+const known = new Set(snapshot.videos.map((v) => v.youtubeId))
 
 let xml
 try {
@@ -47,5 +43,5 @@ if (!missing.length) {
     console.log(`  ${e.published?.slice(0, 10)}  ${e.id}  ${e.title}`)
     console.log(`              https://www.youtube.com/watch?v=${e.id}${e.isShort ? '  (looks like a Short)' : ''}`)
   }
-  console.log('\nAdd each to src/data/episodes.ts or src/data/clips.ts, then run npm test.')
+  console.log('\nThe hourly sync should add these. If it doesn’t, check the "Sync YouTube videos" workflow on GitHub.')
 }

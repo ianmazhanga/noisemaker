@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --experimental-strip-types --no-warnings scripts/validate-content.ts",
+    "test": "node --experimental-strip-types --no-warnings scripts/validate-content.ts && node --experimental-strip-types --no-warnings --test \"tests/*.test.ts\"",
+    "sync:youtube": "node --experimental-strip-types --no-warnings scripts/sync-youtube.ts",
     "check:feed": "node scripts/check-feed.mjs",
     "preview": "vite preview"
   },
