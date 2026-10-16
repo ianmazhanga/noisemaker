@@ -19,6 +19,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const { playEpisode } = usePlayer()
+  const lead = getLeadEpisode()
   useDialog(panelRef, open, onClose, closeRef)
 
   return (
@@ -81,16 +82,18 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
           </nav>
 
           <div className="wrap mt-auto flex flex-col gap-3 pt-10 pb-8">
-            <button
-              type="button"
-              onClick={() => {
-                onClose()
-                playEpisode(getLeadEpisode())
-              }}
-              className={buttonClass('dark', 'lg', 'w-full')}
-            >
-              Watch the latest episode
-            </button>
+            {lead && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose()
+                  playEpisode(lead)
+                }}
+                className={buttonClass('dark', 'lg', 'w-full')}
+              >
+                Watch the latest episode
+              </button>
+            )}
             <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'lg', 'w-full')}>
               <YouTubeIcon className="size-5" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
             </a>

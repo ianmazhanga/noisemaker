@@ -61,5 +61,5 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Episodes', to: '/episodes' },
   { label: 'Clips', to: '/clips' },
   { label: 'About', to: '/about' },
-  { label: 'Collaborate', to: '/collaborate' },
+  { label: 'Tell your story', to: '/tell-your-story' },
 ]

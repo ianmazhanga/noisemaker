@@ -25,15 +25,17 @@ export function Community() {
           <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('light', 'lg', 'w-full sm:w-auto')}>
             <YouTubeIcon className="size-5 text-[#ff0033]" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
           </a>
-          <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('outline-light', 'lg', 'w-full sm:w-auto')}>
-            Comment on the latest episode <ArrowUpRight className="size-4" aria-hidden />
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
+          {lead && (
+            <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('outline-light', 'lg', 'w-full sm:w-auto')}>
+              Comment on the latest episode <ArrowUpRight className="size-4" aria-hidden />
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          )}
         </div>
         <p className="mt-8 text-white/85">
           Have a story worth making noise about?{' '}
-          <Link to="/collaborate" className="group inline-flex items-center gap-1 font-semibold text-white">
-            <span className="link-grow">Here’s how to suggest it</span>
+          <Link to="/tell-your-story" className="group inline-flex items-center gap-1 font-semibold text-white">
+            <span className="link-grow">Tell us your story</span>
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         </p>

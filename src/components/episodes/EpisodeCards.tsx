@@ -19,6 +19,7 @@ function Duration({ seconds, className = '' }: { seconds: number; className?: st
 
 export function TopicLabel({ episode, dark }: { episode: Episode; dark?: boolean }) {
   const topic = getTopic(episode.topic)
+  if (!topic && !episode.series) return null
   return (
     <p className={`kicker ${dark ? 'text-yellow' : 'text-blue-ink'}`}>
       {topic?.name}

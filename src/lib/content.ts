@@ -1,25 +1,28 @@
 /**
  * Content access layer. UI components read content only through these
- * functions, never from src/data directly. To move to a CMS or the YouTube
- * Data API, re-implement these against the new source and map the results to
- * the types in src/types/content.ts.
+ * functions, never from src/data directly.
+ *
+ * Episodes and clips come from the YouTube sync snapshot (src/data/youtube.json,
+ * refreshed hourly by a GitHub Action) merged with the hand-written details in
+ * src/data/episodes.ts and clips.ts. See src/lib/catalog.ts.
  */
 import { CLIPS } from '../data/clips'
 import { EPISODES } from '../data/episodes'
 import { GUESTS } from '../data/guests'
 import { TOPICS } from '../data/topics'
+import snapshot from '../data/youtube.json'
 import { HOMEPAGE } from '../config/site'
-import type { Clip, Episode, Guest, Topic, TopicSlug } from '../types/content'
+import { buildCatalog } from './catalog'
+import type { Clip, Episode, Guest, Topic, TopicSlug, YouTubeSnapshot } from '../types/content'
 
-const byNewest = <T extends { publishedAt: string }>(a: T, b: T) => b.publishedAt.localeCompare(a.publishedAt)
-
-const episodes = [...EPISODES].sort(byNewest)
-const clips = [...CLIPS].sort(byNewest)
+/** Newest first. */
+const { episodes, clips } = buildCatalog(snapshot as YouTubeSnapshot, EPISODES, CLIPS)
 
 export const getEpisodes = (): Episode[] => episodes
 export const getEpisode = (slug: string | undefined) => episodes.find((e) => e.slug === slug)
 
-export function getLeadEpisode(): Episode {
+/** The pinned episode, or the newest. Undefined only if the channel has no episodes at all. */
+export function getLeadEpisode(): Episode | undefined {
   return (HOMEPAGE.leadEpisode !== 'latest' && getEpisode(HOMEPAGE.leadEpisode)) || episodes[0]
 }
 
@@ -37,7 +40,7 @@ export const getEpisodesByGuest = (guestId: string) => episodes.filter((e) => e.
 /** Same guest first, then same topic, then newest. */
 export function getRelatedEpisodes(episode: Episode, limit = 3): Episode[] {
   const score = (e: Episode) =>
-    (e.guestIds.some((g) => episode.guestIds.includes(g)) ? 2 : 0) + (e.topic === episode.topic ? 1 : 0)
+    (e.guestIds.some((g) => episode.guestIds.includes(g)) ? 2 : 0) + (e.topic && e.topic === episode.topic ? 1 : 0)
   return episodes
     .filter((e) => e.slug !== episode.slug)
     .map((e, i) => ({ e, s: score(e), i }))

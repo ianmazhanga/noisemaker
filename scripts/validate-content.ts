@@ -4,7 +4,10 @@
  * Catches the mistakes that would put a broken link, dead play button or
  * dangling reference on the site: malformed YouTube IDs, duplicate slugs,
  * unknown guests or topics, and homepage slots pointing at missing episodes.
+ * Also checks the YouTube sync snapshot (src/data/youtube.json).
  */
+import { readFileSync } from 'node:fs'
+import type { YouTubeSnapshot } from '../src/types/content.ts'
 import { EPISODES } from '../src/data/episodes.ts'
 import { CLIPS } from '../src/data/clips.ts'
 import { GUESTS } from '../src/data/guests.ts'
@@ -12,6 +15,7 @@ import { TOPICS } from '../src/data/topics.ts'
 import { HOMEPAGE, PRIMARY_NAV, SITE } from '../src/config/site.ts'
 
 const errors: string[] = []
+const warnings: string[] = []
 let checks = 0
 function expect(condition: unknown, message: string) {
   checks++
@@ -38,7 +42,7 @@ for (const e of EPISODES) {
   expect(e.title.trim() && !e.title.includes('#'), `${where}: title is empty or contains a hashtag`)
   expect(e.summary.trim().length > 20, `${where}: summary is missing or too short`)
   expect(e.description.length > 0 && e.description.every((p) => p.trim()), `${where}: description is empty`)
-  expect(topicSlugs.has(e.topic), `${where}: unknown topic "${e.topic}"`)
+  if (e.topic) expect(topicSlugs.has(e.topic), `${where}: unknown topic "${e.topic}"`)
   expect(isIsoDate(e.publishedAt), `${where}: publishedAt must be an ISO 8601 UTC time`)
   expect(Number.isInteger(e.durationSeconds) && e.durationSeconds > 0, `${where}: duration must be a positive whole number of seconds`)
   for (const g of e.guestIds) expect(guestIds.has(g), `${where}: unknown guest "${g}"`)
@@ -85,12 +89,48 @@ expect(episodeSlugs.has(HOMEPAGE.heroCollage.landscapeEpisode), 'HOMEPAGE.heroCo
 expect(CLIPS.some((c) => c.youtubeId === HOMEPAGE.heroCollage.clip), 'HOMEPAGE.heroCollage.clip: unknown clip')
 expect(guestIds.has(HOMEPAGE.featuredGuest), `HOMEPAGE.featuredGuest: unknown guest "${HOMEPAGE.featuredGuest}"`)
 
-const ROUTES = ['/', '/episodes', '/clips', '/about', '/collaborate', '/privacy']
+// YouTube sync snapshot
+const snapshot = JSON.parse(readFileSync(new URL('../src/data/youtube.json', import.meta.url), 'utf8')) as YouTubeSnapshot
+expect(snapshot.channelId === SITE.youtube.channelId, 'youtube.json: channelId must match SITE.youtube.channelId')
+expect(Array.isArray(snapshot.videos), 'youtube.json: videos must be a list')
+const snapshotIds = snapshot.videos.map((v) => v.youtubeId)
+expect(new Set(snapshotIds).size === snapshotIds.length, 'youtube.json: a video ID appears more than once')
+const snapshotSlugs = snapshot.videos.flatMap((v) => (v.slug ? [v.slug] : []))
+expect(new Set(snapshotSlugs).size === snapshotSlugs.length, 'youtube.json: an episode slug appears more than once')
+for (let i = 1; i < snapshot.videos.length; i++) {
+  expect(snapshot.videos[i - 1].publishedAt >= snapshot.videos[i].publishedAt, 'youtube.json: videos must be ordered newest first')
+}
+for (const v of snapshot.videos) {
+  const where = `youtube.json video "${v.youtubeId}"`
+  expect(YOUTUBE_ID.test(v.youtubeId), `${where}: invalid YouTube ID`)
+  expect(v.kind === 'episode' || v.kind === 'short', `${where}: kind must be "episode" or "short"`)
+  if (v.kind === 'episode') expect(v.slug && SLUG.test(v.slug), `${where}: episodes need a lowercase-hyphenated slug`)
+  expect(v.title.trim() && !v.title.includes('#'), `${where}: title is empty or contains a hashtag`)
+  expect(Array.isArray(v.description), `${where}: description must be a list of paragraphs`)
+  expect(isIsoDate(v.publishedAt), `${where}: publishedAt must be an ISO 8601 UTC time`)
+  expect(Number.isInteger(v.durationSeconds) && v.durationSeconds > 0, `${where}: duration must be a positive whole number of seconds`)
+  const curated = EPISODES.find((e) => e.youtubeId === v.youtubeId)
+  if (curated && v.slug) expect(curated.slug === v.slug, `${where}: slug "${v.slug}" differs from episodes.ts ("${curated.slug}")`)
+  else if (v.slug) expect(!episodeSlugs.has(v.slug), `${where}: slug "${v.slug}" is already used by a different episode in episodes.ts`)
+}
+// A hand-written video missing from the snapshot was deleted or made private on YouTube. The site hides it, so this is only a warning.
+if (snapshot.videos.length) {
+  const live = new Set(snapshotIds)
+  for (const e of EPISODES) if (!live.has(e.youtubeId)) warnings.push(`Episode "${e.slug}" is no longer public on YouTube, so it's hidden.`)
+  for (const c of CLIPS) if (!live.has(c.youtubeId)) warnings.push(`Clip "${c.youtubeId}" is no longer public on YouTube, so it's hidden.`)
+  const hiddenSlugs = new Set(EPISODES.filter((e) => !live.has(e.youtubeId)).map((e) => e.slug))
+  for (const slug of [...HOMEPAGE.conversations, HOMEPAGE.heroCollage.portraitEpisode, HOMEPAGE.heroCollage.landscapeEpisode]) {
+    if (hiddenSlugs.has(slug)) warnings.push(`HOMEPAGE points at "${slug}", which is hidden. Pick another episode in src/config/site.ts.`)
+  }
+}
+
+const ROUTES = ['/', '/episodes', '/clips', '/about', '/tell-your-story', '/privacy']
 for (const item of PRIMARY_NAV) expect(ROUTES.includes(item.to), `Navigation item "${item.label}" points to an unknown route "${item.to}"`)
 expect(SITE.url.startsWith('https://') && !SITE.url.endsWith('/'), 'SITE.url must be an https origin without a trailing slash')
 for (const s of SITE.social) expect(s.href.startsWith('https://') && s.label.trim(), `Social link "${s.label}" must have a label and an https URL`)
 expect(!SITE.contactEmail || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(SITE.contactEmail), 'SITE.contactEmail is not a valid address')
 
+for (const w of warnings) console.warn(`  ! ${w}`)
 if (errors.length) {
   console.error(`✗ ${errors.length} of ${checks} content checks failed:\n`)
   for (const e of errors) console.error(`  • ${e}`)

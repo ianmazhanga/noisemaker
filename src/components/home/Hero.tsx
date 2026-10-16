@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { ArrowRight, Play } from 'lucide-react'
+import { Mic, Play } from 'lucide-react'
 import { HOMEPAGE, SITE } from '../../config/site'
 import { getClips, getEpisode, getLeadEpisode } from '../../lib/content'
 import { formatDuration, formatRuntime } from '../../lib/format'
@@ -71,30 +71,38 @@ export function Hero() {
             <span className="text-ink">This is the noise you didn’t know you needed.</span>
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row md:mt-10">
-            <button type="button" onClick={() => playEpisode(lead)} className={buttonClass('primary', 'lg', 'w-full sm:w-auto')}>
-              <Play className="size-4 fill-current" aria-hidden /> Watch the latest episode
-            </button>
-            <Link to="/episodes" className={buttonClass('outline', 'lg', 'w-full sm:w-auto')}>
-              Explore episodes <ArrowRight className="size-4" aria-hidden />
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap md:mt-10">
+            {lead ? (
+              <button type="button" onClick={() => playEpisode(lead)} className={buttonClass('primary', 'lg', 'w-full sm:w-auto')}>
+                <Play className="size-4 fill-current" aria-hidden /> Watch the latest episode
+              </button>
+            ) : (
+              <a href={SITE.youtube.channelUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'lg', 'w-full sm:w-auto')}>
+                <YouTubeIcon className="size-5" /> Watch on YouTube<span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
+            <Link to="/tell-your-story" className={buttonClass('dark', 'lg', 'w-full sm:w-auto')}>
+              <Mic className="size-4" aria-hidden /> Tell your story
             </Link>
           </div>
 
           <dl className="mt-8 grid max-w-xl gap-4 border-t border-line pt-6 text-sm sm:grid-cols-2 md:mt-10">
+            {lead && (
+              <div>
+                <dt className="kicker text-muted">Latest episode</dt>
+                <dd className="mt-1.5 font-semibold">
+                  <Link to={`/episodes/${lead.slug}`} className="link-grow">
+                    {lead.title}
+                  </Link>
+                </dd>
+              </div>
+            )}
             <div>
-              <dt className="kicker text-muted">Latest episode</dt>
-              <dd className="mt-1.5 font-semibold">
-                <Link to={`/episodes/${lead.slug}`} className="link-grow">
-                  {lead.title}
-                </Link>
-              </dd>
-            </div>
-            <div>
-              <dt className="kicker text-muted">Where to watch</dt>
+              <dt className="kicker text-muted">Never miss an episode</dt>
               <dd className="mt-1.5">
-                <a href={SITE.youtube.channelUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-semibold">
+                <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-semibold">
                   <YouTubeIcon className="size-4 text-blue" />
-                  <span className="link-grow">YouTube, {SITE.youtube.handle}</span>
+                  <span className="link-grow">Subscribe on YouTube, {SITE.youtube.handle}</span>
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
               </dd>

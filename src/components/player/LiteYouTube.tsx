@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { youtubeEmbedUrl } from '../../lib/youtube'
+import { youtubeEmbedUrl, youtubeShortUrl, youtubeWatchUrl } from '../../lib/youtube'
+import { YouTubeIcon } from '../ui/BrandIcons'
+import { buttonClass } from '../ui/buttonClass'
 import type { Focus } from '../../types/content'
 import { Thumb } from '../ui/Thumb'
 import { PlayIcon } from './PlayIcon'
@@ -10,6 +12,8 @@ interface LiteYouTubeProps {
   hd?: boolean
   focus?: Focus
   vertical?: boolean
+  /** YouTube doesn't allow this video to play here: show a link to YouTube instead of a player. */
+  restricted?: boolean
   /** Load the player straight away (e.g. inside a modal opened by a click). */
   autoload?: boolean
   priority?: boolean
@@ -21,9 +25,23 @@ interface LiteYouTubeProps {
  * to play, so no YouTube scripts or cookies load on page view. Uses the
  * privacy-enhanced youtube-nocookie.com domain.
  */
-export function LiteYouTube({ youtubeId, title, hd, focus, vertical, autoload, priority, className = '' }: LiteYouTubeProps) {
+export function LiteYouTube({ youtubeId, title, hd, focus, vertical, restricted, autoload, priority, className = '' }: LiteYouTubeProps) {
   const [active, setActive] = useState(Boolean(autoload))
   const [ready, setReady] = useState(false)
+
+  if (restricted) {
+    return (
+      <div className={`relative w-full overflow-hidden bg-ink ${vertical ? 'aspect-[9/16]' : 'aspect-video'} ${className}`}>
+        <Thumb youtubeId={youtubeId} hd={hd} vertical={vertical} focus={focus} alt="" priority={priority} sizes="(min-width: 1100px) 1100px, 100vw" className="absolute inset-0 opacity-40" />
+        <div className="on-dark absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center text-paper">
+          <p className="max-w-sm font-semibold">YouTube only lets this video play on YouTube.</p>
+          <a href={vertical ? youtubeShortUrl(youtubeId) : youtubeWatchUrl(youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('light', 'md')}>
+            <YouTubeIcon className="size-4 text-[#ff0033]" /> Watch on YouTube<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`relative w-full overflow-hidden bg-ink ${vertical ? 'aspect-[9/16]' : 'aspect-video'} ${className}`}>

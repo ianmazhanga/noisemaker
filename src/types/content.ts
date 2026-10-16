@@ -36,7 +36,8 @@ export interface Episode {
   description: string[]
   /** Discussion points, only where the channel's description lists them. */
   points?: string[]
-  topic: TopicSlug
+  /** Hand-assigned topic. Episodes imported automatically from YouTube have none until one is set. */
+  topic?: TopicSlug
   /** Guest IDs from src/data/guests.ts, only where YouTube names them. */
   guestIds: string[]
   /** ISO 8601 publish time as reported by YouTube */
@@ -45,6 +46,8 @@ export interface Episode {
   durationSeconds: number
   /** YouTube serves a 1280×720 maxresdefault thumbnail for this video. */
   hd?: boolean
+  /** YouTube doesn't allow this video to play on other sites (embedding off or age-restricted). Set by the sync. */
+  restricted?: boolean
   /** Where faces sit in the thumbnail, used when cropping to portrait shapes. */
   focus?: Focus
   /** Multi-part conversations */
@@ -65,6 +68,8 @@ export interface Clip {
   guestIds: string[]
   /** Full episode the clip was cut from, only where that is verifiable. */
   episodeSlug?: string
+  /** YouTube doesn't allow this video to play on other sites. Set by the sync. */
+  restricted?: boolean
 }
 
 export interface Guest {
@@ -80,4 +85,28 @@ export interface Guest {
   portrait: { youtubeId: string; hd?: boolean; focus: Focus }
   /** Extra links the channel itself shares, e.g. a book. */
   links?: { label: string; href: string }[]
+}
+
+/**
+ * One public video as last seen on the channel by the YouTube sync
+ * (scripts/sync-youtube.ts). Stored in src/data/youtube.json.
+ */
+export interface SyncedVideo {
+  youtubeId: string
+  kind: 'episode' | 'short'
+  /** Episodes only. Assigned once when the video is first seen and never changed, so links stay stable. */
+  slug?: string
+  /** The YouTube title with hashtags removed. */
+  title: string
+  /** The YouTube description, as paragraphs, with hashtag-only lines removed. */
+  description: string[]
+  publishedAt: string
+  durationSeconds: number
+  hd: boolean
+  restricted: boolean
+}
+
+export interface YouTubeSnapshot {
+  channelId: string
+  videos: SyncedVideo[]
 }

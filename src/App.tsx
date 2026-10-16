@@ -10,7 +10,7 @@ const EpisodesPage = lazy(() => import('./pages/EpisodesPage'))
 const EpisodePage = lazy(() => import('./pages/EpisodePage'))
 const ClipsPage = lazy(() => import('./pages/ClipsPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
-const CollaboratePage = lazy(() => import('./pages/CollaboratePage'))
+const TellYourStoryPage = lazy(() => import('./pages/TellYourStoryPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 
@@ -24,12 +24,13 @@ const router = createBrowserRouter([
       { path: 'episodes/:slug', element: <EpisodePage /> },
       { path: 'clips', element: <ClipsPage /> },
       { path: 'about', element: <AboutPage /> },
-      { path: 'collaborate', element: <CollaboratePage /> },
+      { path: 'tell-your-story', element: <TellYourStoryPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
       // URLs from the site's earlier layout
       { path: 'videos', element: <Navigate to="/episodes" replace /> },
       { path: 'latest', element: <Navigate to="/episodes" replace /> },
-      { path: 'contact', element: <Navigate to="/collaborate" replace /> },
+      { path: 'contact', element: <Navigate to="/tell-your-story" replace /> },
+      { path: 'collaborate', element: <Navigate to="/tell-your-story" replace /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

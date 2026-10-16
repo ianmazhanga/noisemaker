@@ -83,7 +83,7 @@ export default function EpisodePage() {
 
         <div className="wrap mt-8 md:mt-10">
           <div className="max-w-[1100px]">
-            <LiteYouTube key={episode.slug} youtubeId={episode.youtubeId} title={episode.title} hd={episode.hd} priority className="rounded-lg" />
+            <LiteYouTube key={episode.slug} youtubeId={episode.youtubeId} title={episode.title} hd={episode.hd} restricted={episode.restricted} priority className="rounded-lg" />
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'md')}>
                 <YouTubeIcon className="size-4" /> Watch on YouTube<span className="sr-only"> (opens in a new tab)</span>
@@ -97,8 +97,10 @@ export default function EpisodePage() {
           <div className="lg:col-span-7">
             <p className="measure text-xl leading-relaxed md:text-2xl md:leading-snug">{episode.summary}</p>
             <div className="measure mt-6 space-y-5 text-lg text-muted">
-              {episode.description.map((p) => (
-                <p key={p}>{p}</p>
+              {episode.description.map((p, i) => (
+                <p key={i} className="whitespace-pre-line [overflow-wrap:anywhere]">
+                  {p}
+                </p>
               ))}
             </div>
             {episode.points && (
