@@ -26,7 +26,7 @@ export function RouteError() {
           <button type="button" onClick={() => window.location.reload()} className={buttonClass('primary', 'lg')}>
             Reload page
           </button>
-          <a href="/" className={buttonClass('outline', 'lg')}>
+          <a href={import.meta.env.BASE_URL} className={buttonClass('outline', 'lg')}>
             Go to the homepage
           </a>
         </div>
