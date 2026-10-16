@@ -1,0 +1,260 @@
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/source-serif-4/opsz-italic.css';
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Noisemakers design tokens
+   Taken from the channel itself: the electric blue of the logo, the
+   black grounds and heavy white type of the thumbnails, and their
+   yellow highlight word. Everything else stays quiet paper and ink.
+------------------------------------------------------------------- */
+@theme {
+  --color-ink: #0b0b0c;
+  --color-ink-2: #18181b;
+  --color-ink-3: #26262a;
+  --color-paper: #fbfaf7;
+  --color-bone: #f1eee7;
+  --color-line: #e2ded5;
+  --color-line-dark: #2e2e33;
+  --color-muted: #5b5954;
+  --color-muted-dark: #a5a39e;
+  --color-blue: #1a62f2;
+  --color-blue-deep: #0e45c2;
+  --color-blue-ink: #1554d6;
+  --color-yellow: #f7d046;
+  --color-yellow-soft: #fbe592;
+
+  --font-display: 'Archivo Variable', 'Arial Black', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --animate-spin-slow: spin 1.1s linear infinite;
+}
+
+:root {
+  --gutter: 1.25rem;
+  --header-h: 4rem;
+}
+@media (min-width: 768px) {
+  :root {
+    --gutter: 2.5rem;
+    --header-h: 4.5rem;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: calc(var(--header-h) + 1rem);
+  }
+  body {
+    @apply bg-paper font-sans text-ink antialiased;
+    font-size: 1rem;
+    line-height: 1.6;
+    overflow-x: clip;
+  }
+  ::selection {
+    background: var(--color-yellow);
+    color: var(--color-ink);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  img {
+    @apply block max-w-full;
+  }
+  button {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+  .on-dark :focus-visible,
+  .on-blue :focus-visible {
+    outline-color: var(--color-yellow);
+  }
+}
+
+@layer components {
+  .wrap {
+    width: 100%;
+    max-width: calc(1360px + var(--gutter) * 2);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* Small uppercase label */
+  .kicker {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 650;
+    letter-spacing: 0.14em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  /* Display type: heavy, slightly expanded, tight */
+  .display-xl,
+  .display-lg,
+  .display-md,
+  .title {
+    font-family: var(--font-display);
+    font-variation-settings: 'wdth' 106;
+    text-wrap: balance;
+  }
+  .display-xl {
+    font-size: clamp(2.9rem, 7.2vw, 7rem);
+    font-weight: 850;
+    letter-spacing: -0.045em;
+    line-height: 0.92;
+  }
+  .display-lg {
+    font-size: clamp(2.2rem, 4.4vw, 4rem);
+    font-weight: 820;
+    letter-spacing: -0.04em;
+    line-height: 0.98;
+  }
+  .display-md {
+    font-size: clamp(1.55rem, 2.4vw, 2.25rem);
+    font-weight: 780;
+    letter-spacing: -0.03em;
+    line-height: 1.06;
+  }
+  .title {
+    font-weight: 720;
+    letter-spacing: -0.018em;
+    line-height: 1.16;
+  }
+
+  /* The serif italic "voice" for single accent words and quotes */
+  .accent {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    font-variation-settings: normal;
+  }
+
+  /* Yellow highlighter, like the highlight word on the channel's thumbnails */
+  .mark {
+    background-image: linear-gradient(transparent 60%, var(--color-yellow-soft) 60%, var(--color-yellow-soft) 92%, transparent 92%);
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    padding-inline: 0.04em;
+  }
+  .on-dark .mark {
+    background: none;
+    color: var(--color-yellow);
+  }
+
+  /* Comfortable reading measure */
+  .measure {
+    max-width: 62ch;
+  }
+
+  /* ---- Thumbnails ------------------------------------------------
+     .thumb fills whatever shape its parent gives it. .thumb-box is a
+     16:9 box that always covers the thumb, positioned by --fx/--fy,
+     so letterboxed 4:3 YouTube thumbnails crop cleanly to the picture
+     area at any aspect ratio, from 16:9 to tall portraits. */
+  .thumb {
+    position: relative;
+    overflow: hidden;
+    container-type: size;
+    background: var(--color-ink-2);
+  }
+  .thumb-box {
+    position: absolute;
+    width: max(100cqw, 177.78cqh);
+    height: max(56.25cqw, 100cqh);
+    left: calc((100cqw - max(100cqw, 177.78cqh)) * var(--fx, 0.5));
+    top: calc((100cqh - max(56.25cqw, 100cqh)) * var(--fy, 0.5));
+    transform: scale(var(--zoom, 1));
+    transform-origin: calc(var(--fx, 0.5) * 100%) calc(var(--fy, 0.5) * 100%);
+  }
+  .thumb img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 400ms var(--ease-out), transform 700ms var(--ease-out);
+  }
+  .group:hover .thumb-zoom img,
+  .group:focus-within .thumb-zoom img {
+    transform: scale(1.035);
+  }
+
+  /* Underline that grows on hover, for text links */
+  .link-grow {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-size: 0% 1.5px;
+    background-position: 0 100%;
+    background-repeat: no-repeat;
+    transition: background-size 250ms var(--ease-out);
+  }
+  .link-grow:hover,
+  .group:hover .link-grow,
+  .link-grow:focus-visible {
+    background-size: 100% 1.5px;
+  }
+
+  /* Horizontal rails: bleed to the screen edge on mobile, snap to items */
+  .rail {
+    /* Positioned so absolutely positioned descendants (e.g. sr-only text) are clipped by the rail too */
+    position: relative;
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--gutter);
+    padding-inline: var(--gutter);
+    margin-inline: calc(var(--gutter) * -1);
+    scrollbar-width: none;
+  }
+  .rail::-webkit-scrollbar {
+    display: none;
+  }
+  .rail > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+  @media (min-width: 768px) {
+    .rail {
+      gap: 1.5rem;
+    }
+  }
+
+  /* Multi-line clamp */
+  .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
