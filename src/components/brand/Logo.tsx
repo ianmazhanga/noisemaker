@@ -50,16 +50,20 @@ interface LogoProps {
 
 export function Logo({ inverted, className = '', lockup }: LogoProps) {
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark className="size-9 shrink-0" />
+    // Slightly smaller on phones so the full lockup fits beside the header buttons.
+    <span className={`inline-flex items-center gap-2 sm:gap-2.5 ${className}`}>
+      <LogoMark className="size-8 shrink-0 sm:size-9" />
       <span
-        className={`font-display text-[1.3rem] leading-none font-[800] tracking-[-0.03em] ${inverted ? 'text-paper' : 'text-ink'}`}
+        className={`font-display text-[1.15rem] leading-none font-[800] tracking-[-0.03em] sm:text-[1.3rem] ${inverted ? 'text-paper' : 'text-ink'}`}
         style={{ fontVariationSettings: "'wdth' 104" }}
       >
         Noisemakers
       </span>
       {lockup && (
-        <span className={`border-l pl-2.5 text-[0.6875rem] leading-tight font-semibold tracking-[0.06em] uppercase ${inverted ? 'border-paper/30 text-paper/70' : 'border-ink/20 text-muted'}`}>
+        // Hidden on the narrowest phones, where it would push the header buttons off screen.
+        <span
+          className={`border-l pl-2 text-[0.625rem] leading-tight font-semibold tracking-[0.06em] uppercase max-[379px]:hidden sm:pl-2.5 sm:text-[0.6875rem] ${inverted ? 'border-paper/30 text-paper/70' : 'border-ink/20 text-muted'}`}
+        >
           News
           <br />
           Network
