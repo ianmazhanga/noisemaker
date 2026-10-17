@@ -32,9 +32,9 @@ export function Header() {
       <header
         className={`sticky top-0 z-50 bg-paper transition-[border-color] duration-200 ${scrolled ? 'border-b border-line' : 'border-b border-transparent'}`}
       >
-        <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-6">
+        <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6">
           <Link to="/" className="-m-1 rounded-md p-1" aria-label={`${SITE.name}, home`}>
-            <Logo />
+            <Logo lockup />
           </Link>
 
           <nav aria-label="Primary" className="hidden lg:block">

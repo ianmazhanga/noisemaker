@@ -39,7 +39,7 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
           transition={{ duration: 0.18 }}
         >
           <div className="wrap flex h-[var(--header-h)] shrink-0 items-center justify-between">
-            <Logo />
+            <Logo lockup />
             <button
               ref={closeRef}
               type="button"
