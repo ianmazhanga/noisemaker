@@ -30,7 +30,7 @@ export function Header() {
         Skip to content
       </a>
       <header
-        className={`sticky top-0 z-50 bg-paper transition-[border-color] duration-200 ${scrolled ? 'border-b border-line' : 'border-b border-transparent'}`}
+        className={`sticky top-0 z-50 border-b border-line bg-bone transition-shadow duration-200 ${scrolled ? 'shadow-[0_6px_20px_-12px_rgb(11_11_12_/_0.25)]' : ''}`}
       >
         <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6">
           <Link to="/" className="-m-1 rounded-md p-1" aria-label={`${SITE.name}, home`}>
