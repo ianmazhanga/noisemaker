@@ -13,6 +13,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'))
 const TellYourStoryPage = lazy(() => import('./pages/TellYourStoryPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const InboxPage = lazy(() => import('./pages/InboxPage'))
 
 const router = createBrowserRouter([
   {
@@ -26,6 +27,8 @@ const router = createBrowserRouter([
       { path: 'about', element: <AboutPage /> },
       { path: 'tell-your-story', element: <TellYourStoryPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
+      // Private: password-protected, not linked from the site
+      { path: 'inbox', element: <InboxPage /> },
       // URLs from the site's earlier layout
       { path: 'videos', element: <Navigate to="/episodes" replace /> },
       { path: 'latest', element: <Navigate to="/episodes" replace /> },

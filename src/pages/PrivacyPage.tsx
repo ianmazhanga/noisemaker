@@ -40,7 +40,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             <strong className="text-ink">Where it’s stored:</strong> with our website host, Netlify, using its Netlify Forms service. Netlify may check submissions with an
-            automated spam filter. Only the Noisemakers team can see submissions.
+            automated spam filter. Only the Noisemakers team can see submissions, in Netlify or on a password-protected page of this site.
           </p>
           <p>
             <strong className="text-ink">How long:</strong> we delete submissions we aren’t taking forward within {RETENTION}. If your story becomes part of a conversation,

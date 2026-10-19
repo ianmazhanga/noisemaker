@@ -9,7 +9,18 @@
 [build.environment]
   NODE_VERSION = "24"
 
+# Serverless functions. netlify/functions/inbox.ts serves the private /inbox page.
+[functions]
+  directory = "netlify/functions"
+
 # Single-page app: unknown paths serve index.html (see public/_redirects).
+
+# The private inbox: keep it out of search engines and caches.
+[[headers]]
+  for = "/inbox"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store"
 
 [[headers]]
   for = "/*"
