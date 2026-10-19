@@ -1,10 +1,10 @@
 /**
  * Private submissions inbox (/inbox): shared by the page and netlify/functions/inbox.ts.
  *
- * Netlify Forms keeps the submissions. The function fetches them with a Netlify
- * access token that never reaches the browser, and only after the inbox password
- * matches. Only the form's own fields are passed on: Netlify also records each
- * sender's IP address and browser, which the inbox doesn't need.
+ * Netlify Forms receives the submissions, and netlify/functions/submission-created.ts
+ * copies each one into the site's Netlify Database. The inbox function only returns
+ * them after the inbox password matches. Only the form's own fields are kept:
+ * Netlify also records each sender's IP address and browser, which the inbox doesn't need.
  *
  * Imports only storyForm.ts, so tests can run this file directly in Node.
  */
@@ -20,8 +20,6 @@ export interface InboxEntry {
 
 export interface InboxResponse {
   entries: InboxEntry[]
-  /** False until Netlify has detected the form, i.e. before the first deploy with form detection on. */
-  formFound: boolean
 }
 
 /** The page is on the open web, so the function won't run with a shorter INBOX_PASSWORD. */

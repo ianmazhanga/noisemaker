@@ -1,7 +1,10 @@
 import { test, afterEach } from 'node:test'
 import assert from 'node:assert/strict'
 import { isCallRequest, matchesSearch, passwordMatches, safeWebLink, toEntry, whatsappLink } from '../src/lib/inbox.ts'
-import handler from '../netlify/functions/inbox.ts'
+import { createInboxHandler } from '../netlify/functions/inbox.ts'
+import { createSubmissionHandler } from '../netlify/functions/submission-created.ts'
+import type { InboxStore } from '../netlify/inboxStore.ts'
+import type { InboxEntry } from '../src/lib/inbox.ts'
 
 const raw = (id: string, createdAt: string, data: Record<string, string>) => ({
   id,
@@ -38,59 +41,51 @@ test('search, call-request filter and safe links', () => {
   assert.equal(safeWebLink('https://instagram.com/x'), 'https://instagram.com/x')
 })
 
-// The function, against a fake Netlify API.
-const realFetch = globalThis.fetch
+// The functions, against an in-memory fake of the database store.
 afterEach(() => {
-  globalThis.fetch = realFetch
   delete process.env.INBOX_PASSWORD
-  delete process.env.NETLIFY_API_TOKEN
 })
 
 const PASSWORD = 'a long inbox password'
-const context = { site: { id: 'site-123' } }
 const post = (body: unknown) => new Request('https://example.com/api/inbox', { method: 'POST', body: JSON.stringify(body) })
 
-function fakeNetlify(seen: string[]) {
-  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
-    seen.push(String(url))
-    assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer secret-token')
-    if (String(url).endsWith('/sites/site-123/forms')) return Response.json([{ id: 'other', name: 'newsletter' }, { id: 'form-1', name: 'tell-your-story' }])
-    if (String(url).includes('/forms/form-1/submissions')) {
-      return Response.json([raw('old', '2026-10-01T09:00:00Z', { full_name: 'Older' }), raw('new', '2026-10-19T09:00:00Z', { full_name: 'Newer' })])
-    }
-    return new Response('not found', { status: 404 })
-  }) as typeof fetch
+function fakeStore(): InboxStore & { rows: InboxEntry[] } {
+  const rows: InboxEntry[] = []
+  return {
+    rows,
+    async add(e) { if (!rows.some((r) => r.id === e.id)) rows.push(e) },
+    async list() { return [...rows].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt)) },
+    async remove(id) { rows.splice(0, rows.length, ...rows.filter((r) => r.id !== id)) },
+  }
 }
 
-test('the function refuses to run without a strong password and a token', async () => {
+test('the inbox refuses to run without a strong password', async () => {
   process.env.INBOX_PASSWORD = 'short'
-  process.env.NETLIFY_API_TOKEN = 'secret-token'
-  const res = await handler(post({ password: 'short' }), context)
+  const res = await createInboxHandler(fakeStore())(post({ password: 'short' }))
   assert.equal(res.status, 503)
 })
 
-test('a wrong password gets nothing and never reaches Netlify', async () => {
+test('a wrong password gets nothing', async () => {
   process.env.INBOX_PASSWORD = PASSWORD
-  process.env.NETLIFY_API_TOKEN = 'secret-token'
-  const seen: string[] = []
-  fakeNetlify(seen)
-  const res = await handler(post({ password: 'guess' }), context)
-  assert.equal(res.status, 401)
-  assert.deepEqual(seen, [])
-  assert.equal((await handler(new Request('https://example.com/api/inbox'), context)).status, 405)
+  const handler = createInboxHandler(fakeStore())
+  assert.equal((await handler(post({ password: 'guess' }))).status, 401)
+  assert.equal((await handler(new Request('https://example.com/api/inbox'))).status, 405)
 })
 
-test('the right password returns the story submissions, newest first, without the token', async () => {
+test('submissions are saved without IP or browser, listed newest first, and can be deleted', async () => {
   process.env.INBOX_PASSWORD = PASSWORD
-  process.env.NETLIFY_API_TOKEN = 'secret-token'
-  const seen: string[] = []
-  fakeNetlify(seen)
-  const res = await handler(post({ password: PASSWORD }), context)
-  assert.equal(res.status, 200)
-  const text = await res.text()
-  assert.ok(!text.includes('secret-token'))
-  const body = JSON.parse(text)
-  assert.equal(body.formFound, true)
+  const store = fakeStore()
+  const save = createSubmissionHandler(store)
+  const event = (id: string, createdAt: string, form = 'tell-your-story') =>
+    new Request('https://example.com', { method: 'POST', body: JSON.stringify({ payload: { form_name: form, ...raw(id, createdAt, { full_name: id }) } }) })
+  await save(event('old', '2026-10-01T09:00:00Z'))
+  await save(event('new', '2026-10-19T09:00:00Z'))
+  await save(event('other', '2026-10-19T10:00:00Z', 'newsletter'))
+  assert.ok(!JSON.stringify(store.rows).includes('203.0.113.9'))
+
+  const handler = createInboxHandler(store)
+  const body = (await (await handler(post({ password: PASSWORD }))).json()) as { entries: InboxEntry[] }
   assert.deepEqual(body.entries.map((e: { id: string }) => e.id), ['new', 'old'])
-  assert.ok(seen.every((u) => u.startsWith('https://api.netlify.com/api/v1/')))
+  const after = (await (await handler(post({ password: PASSWORD, deleteId: "old" }))).json()) as { entries: InboxEntry[] }
+  assert.deepEqual(after.entries.map((e: { id: string }) => e.id), ['new'])
 })
