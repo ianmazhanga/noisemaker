@@ -15,8 +15,8 @@ const input =
 
 const ERRORS: Record<string, string> = {
   'wrong-password': 'That password isn’t right. Please try again.',
-  'not-configured': 'The inbox isn’t set up yet. INBOX_PASSWORD and NETLIFY_API_TOKEN need to be added in Netlify.',
-  'netlify-unavailable': 'Netlify didn’t respond. Please try again in a minute.',
+  'not-configured': 'The inbox isn’t set up yet. INBOX_PASSWORD (12+ characters) needs to be added in Netlify.',
+  'storage-unavailable': 'The inbox storage didn’t respond. Please try again in a minute.',
   'too-many': 'Too many attempts. Please wait a minute and try again.',
 }
 
@@ -124,11 +124,7 @@ export default function InboxPage() {
               </div>
             </div>
 
-            {!state.data.formFound ? (
-              <p className="measure mt-8 text-lg text-muted">
-                Netlify hasn’t detected the “Tell your story” form yet. Turn on form detection in Netlify (Forms → Enable form detection), then redeploy the site.
-              </p>
-            ) : entries.length === 0 ? (
+            {entries.length === 0 ? (
               <p className="mt-8 text-lg text-muted">No submissions yet.</p>
             ) : (
               <>
