@@ -310,3 +310,15 @@ export function parseStoryForm(input: unknown): StoryForm | null {
 }
 
 export const REFERENCE_PATTERN = /^NM-\d{6}-[A-Z2-9]{4}$/
+
+/**
+ * What the visitor sees when sending fails, by the server's HTTP status (0 = no answer).
+ * Every message says the answers are still on the page, because they are.
+ */
+export function submitErrorMessage(status: number, offline: boolean): string {
+  if (offline) return 'You seem to be offline. Your answers are still here: reconnect and press Send again.'
+  if (status === 400) return 'Something in the form wasn’t accepted. Please check your answers and press Send again.'
+  if (status === 429) return 'We’re receiving a lot of submissions right now. Your answers are still here, so please try again in a few minutes.'
+  if (status === 503) return 'The form is temporarily unavailable while we fix something on our side. Your answers are still here, so please try again later today.'
+  return 'Something went wrong and your story wasn’t sent. Your answers are still here, so please try again in a moment.'
+}

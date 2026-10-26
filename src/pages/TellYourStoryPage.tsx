@@ -16,6 +16,7 @@ import {
   SUMMARY_MIN,
   fingerprint,
   makeReference,
+  submitErrorMessage,
   validate,
   type RequestType,
   type StoryForm,
@@ -72,6 +73,8 @@ export default function TellYourStoryPage() {
   const [sent, setSent] = useState<{ reference: string; requestType: RequestType; contactMethod: StoryForm['contactMethod'] } | null>(null)
   const honeypotRef = useRef<HTMLInputElement>(null)
   const sendingRef = useRef(false)
+  // A retry of the same answers reuses its reference, so a request that reached the server but timed out is saved only once.
+  const pendingRef = useRef<{ print: string; reference: string } | null>(null)
 
   const isStory = form.requestType === 'story'
   const liveErrors = useMemo(() => validate(form), [form])
@@ -103,7 +106,8 @@ export default function TellYourStoryPage() {
 
     sendingRef.current = true
     setStatus({ kind: 'sending' })
-    const reference = makeReference()
+    if (pendingRef.current?.print !== print) pendingRef.current = { print, reference: makeReference() }
+    let reference = pendingRef.current.reference
     try {
       const honeypot = honeypotRef.current?.value ?? ''
       if (import.meta.env.DEV) {
@@ -117,15 +121,16 @@ export default function TellYourStoryPage() {
           signal: AbortSignal.timeout(20_000),
         })
         if (!res.ok) throw new Error(String(res.status))
+        // The same story sent earlier keeps its first reference, which is the one in the Story Inbox.
+        const body = (await res.json().catch(() => ({}))) as { reference?: string }
+        if (body.reference) reference = body.reference
       }
+      pendingRef.current = null
       rememberSent(print, reference)
       setSent({ reference, requestType: form.requestType, contactMethod: form.contactMethod })
       window.scrollTo({ top: 0, behavior: 'instant' })
-    } catch {
-      setStatus({
-        kind: 'error',
-        message: navigator.onLine === false ? 'You seem to be offline. Your answers are still here: reconnect and press Send again.' : 'Something went wrong and your story wasn’t sent. Your answers are still here, so please try again in a moment.',
-      })
+    } catch (error) {
+      setStatus({ kind: 'error', message: submitErrorMessage(error instanceof Error ? Number(error.message) || 0 : 0, navigator.onLine === false) })
     } finally {
       sendingRef.current = false
     }
