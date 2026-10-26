@@ -13,6 +13,9 @@ const BooksPage = lazy(() => import('./pages/BooksPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const TellYourStoryPage = lazy(() => import('./pages/TellYourStoryPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const NewsPage = lazy(() => import('./pages/NewsPage'))
+const NewsArticlePage = lazy(() => import('./pages/NewsArticlePage'))
+const NewsletterPage = lazy(() => import('./pages/NewsletterPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 // Owner dashboard: its own layout, loaded only when someone opens /admin.
 const AdminApp = lazy(() => import('./admin/AdminApp'))
@@ -22,6 +25,15 @@ const AdminNotifications = lazy(() => import('./admin/NotificationsPage'))
 const AdminSettings = lazy(() => import('./admin/SettingsPage'))
 const AdminSocial = lazy(() => import('./admin/social/SocialPage'))
 const AdminResetPassword = lazy(() => import('./admin/ResetPasswordPage'))
+const AdminVideo = lazy(() => import('./admin/VideoPage'))
+const AdminShorts = lazy(() => import('./admin/ShortsPage'))
+const AdminNewsAgent = lazy(() => import('./admin/NewsAgentPage'))
+const AdminNews = lazy(() => import('./admin/NewsPage'))
+const AdminNewsletter = lazy(() => import('./admin/NewsletterPage'))
+const AdminCalendar = lazy(() => import('./admin/CalendarPage'))
+const AdminYouTube = lazy(() => import('./admin/YouTubePage'))
+const AdminAnalytics = lazy(() => import('./admin/AnalyticsPage'))
+const AdminTeam = lazy(() => import('./admin/TeamPage'))
 
 const router = createBrowserRouter([
   {
@@ -36,6 +48,15 @@ const router = createBrowserRouter([
       { index: true, element: <AdminOverview /> },
       { path: 'stories', element: <AdminStories /> },
       { path: 'social', element: <AdminSocial /> },
+      { path: 'video', element: <AdminVideo /> },
+      { path: 'shorts', element: <AdminShorts /> },
+      { path: 'news-agent', element: <AdminNewsAgent /> },
+      { path: 'news', element: <AdminNews /> },
+      { path: 'newsletter', element: <AdminNewsletter /> },
+      { path: 'calendar', element: <AdminCalendar /> },
+      { path: 'youtube', element: <AdminYouTube /> },
+      { path: 'analytics', element: <AdminAnalytics /> },
+      { path: 'team', element: <AdminTeam /> },
       { path: 'notifications', element: <AdminNotifications /> },
       { path: 'settings', element: <AdminSettings /> },
       { path: '*', element: <Navigate to="/admin" replace /> },
@@ -61,6 +82,9 @@ const router = createBrowserRouter([
       { path: 'about', element: <AboutPage /> },
       { path: 'tell-your-story', element: <TellYourStoryPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'news', element: <NewsPage /> },
+      { path: 'news/:slug', element: <NewsArticlePage /> },
+      { path: 'newsletter', element: <NewsletterPage /> },
       // The old password-protected inbox is now the dashboard's Story Inbox.
       { path: 'inbox', element: <Navigate to="/admin/stories" replace /> },
       // URLs from the site's earlier layout

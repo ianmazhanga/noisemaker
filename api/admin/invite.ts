@@ -7,7 +7,7 @@
  * read from the database, never from the request. Uses SUPABASE_URL and SUPABASE_SECRET_KEY
  * (see api/stories.ts).
  */
-const ROLES = ['owner', 'content_manager'] as const
+const ROLES = ['owner', 'editor', 'content_manager', 'viewer'] as const
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 const json = (body: unknown, status = 200) =>
@@ -54,7 +54,7 @@ export async function POST(req: Request): Promise<Response> {
     const grant = await call(`/rest/v1/profiles?id=eq.${encodeURIComponent(memberId)}`, {
       method: 'PATCH',
       headers: { Prefer: 'return=minimal' },
-      body: JSON.stringify({ role, can_view_stories: role === 'owner' || canViewStories === true }),
+      body: JSON.stringify({ role, can_view_stories: role === 'owner' || (role !== 'viewer' && canViewStories === true) }),
     })
     if (!grant.ok) throw new Error(`Supabase ${grant.status} setting the new member's role`)
     await call('/rest/v1/audit_logs', {

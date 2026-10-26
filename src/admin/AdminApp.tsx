@@ -1,16 +1,14 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import type { Session } from '@supabase/supabase-js'
-import { Bell, Inbox, LayoutDashboard, LogOut, Megaphone, Menu, Settings, X } from 'lucide-react'
+import { BarChart3, Bell, CalendarDays, Clapperboard, Inbox, LayoutDashboard, LogOut, Mail, Megaphone, Menu, Newspaper, Radar, Scissors, Settings, Users, X } from 'lucide-react'
+import { YouTubeIcon } from '../components/ui/BrandIcons'
 import { supabase, ROLE_LABEL, type Profile } from '../lib/supabase'
 import { Seo } from '../components/seo/Seo'
 import { LogoMark } from '../components/brand/Logo'
 import { buttonClass } from '../components/ui/buttonClass'
 import { inputClass } from '../components/inbox/shared'
 import { AdminContext, friendlyError, type AdminState } from './context'
-
-/** Sections from the plan that aren't built yet. Shown greyed out so nobody mistakes them for working features. */
-const LATER = ['AI News Agent', 'Newsletter Manager', 'Video Production', 'Content Calendar', 'Analytics']
 
 export function Spinner({ label }: { label: string }) {
   return (
@@ -157,7 +155,9 @@ function AuthGate() {
 function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: Session; profile: Profile; refreshProfile: () => Promise<void>; onSignOut: () => void }) {
   const db = supabase!
   const isOwner = profile.role === 'owner'
-  const canReadStories = isOwner || profile.can_view_stories
+  const isWriter = profile.role !== 'viewer'
+  // The database applies the same rule: viewers never see story submissions.
+  const canReadStories = isOwner || (isWriter && profile.can_view_stories)
   const [newStories, setNewStories] = useState<number | null>(null)
   const [unread, setUnread] = useState<number | null>(null)
   const [pendingPosts, setPendingPosts] = useState<number | null>(null)
@@ -172,12 +172,15 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
     }
     const posts = await db.from('social_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval')
     setPendingPosts(posts.error ? null : (posts.count ?? 0))
-    const [{ data: notes }, { data: reads }] = await Promise.all([
-      db.from('notifications').select('id').order('created_at', { ascending: false }).limit(200),
+    const [{ data: notes }, { data: reads }, prefs] = await Promise.all([
+      db.from('notifications').select('id, kind').order('created_at', { ascending: false }).limit(200),
       db.from('notification_reads').select('notification_id'),
+      // Fails harmlessly before the newsroom migration adds preferences.
+      db.from('notification_preferences').select('muted_kinds').maybeSingle(),
     ])
     const read = new Set((reads ?? []).map((r) => r.notification_id as string))
-    setUnread((notes ?? []).filter((n) => !read.has(n.id as string)).length)
+    const muted = new Set(((prefs.data as { muted_kinds: string[] } | null)?.muted_kinds ?? []))
+    setUnread((notes ?? []).filter((n) => !read.has(n.id as string) && !muted.has(n.kind as string)).length)
   }, [db, canReadStories])
 
   // Counts update live: Supabase Realtime sends only rows this person may read.
@@ -200,35 +203,63 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
   }, [])
 
   const state = useMemo<AdminState>(
-    () => ({ db, session, profile, canReadStories, isOwner, newStories, unread, pendingPosts, refreshCounts: () => void refreshCounts(), refreshProfile, toast }),
-    [db, session, profile, canReadStories, isOwner, newStories, unread, pendingPosts, refreshCounts, refreshProfile, toast],
+    () => ({ db, session, profile, canReadStories, isOwner, isWriter, newStories, unread, pendingPosts, refreshCounts: () => void refreshCounts(), refreshProfile, toast }),
+    [db, session, profile, canReadStories, isOwner, isWriter, newStories, unread, pendingPosts, refreshCounts, refreshProfile, toast],
   )
 
+  const icon = 'size-4.5'
   const nav = (
     <nav aria-label="Dashboard" className="flex flex-col gap-1">
-      <SideLink to="/admin" end icon={<LayoutDashboard className="size-4.5" aria-hidden />}>
+      <SideLink to="/admin" end icon={<LayoutDashboard className={icon} aria-hidden />}>
         Overview
       </SideLink>
+      <NavGroup label="Newsroom" />
       {canReadStories && (
-        <SideLink to="/admin/stories" icon={<Inbox className="size-4.5" aria-hidden />} badge={newStories ? `${newStories} new` : undefined}>
+        <SideLink to="/admin/stories" icon={<Inbox className={icon} aria-hidden />} badge={newStories ? `${newStories} new` : undefined}>
           Story Inbox
         </SideLink>
       )}
-      <SideLink to="/admin/social" icon={<Megaphone className="size-4.5" aria-hidden />} badge={pendingPosts ? `${pendingPosts} to approve` : undefined}>
+      <SideLink to="/admin/news-agent" icon={<Radar className={icon} aria-hidden />}>
+        AI News Agent
+      </SideLink>
+      <SideLink to="/admin/news" icon={<Newspaper className={icon} aria-hidden />}>
+        News Manager
+      </SideLink>
+      <SideLink to="/admin/newsletter" icon={<Mail className={icon} aria-hidden />}>
+        Newsletter Manager
+      </SideLink>
+      <NavGroup label="Video" />
+      <SideLink to="/admin/video" icon={<Clapperboard className={icon} aria-hidden />}>
+        Video Production
+      </SideLink>
+      <SideLink to="/admin/shorts" icon={<Scissors className={icon} aria-hidden />}>
+        AI Shorts Generator
+      </SideLink>
+      <SideLink to="/admin/youtube" icon={<YouTubeIcon className={icon} />}>
+        YouTube Manager
+      </SideLink>
+      <NavGroup label="Publishing" />
+      <SideLink to="/admin/social" icon={<Megaphone className={icon} aria-hidden />} badge={pendingPosts ? `${pendingPosts} to approve` : undefined}>
         Social Media Manager
       </SideLink>
-      <SideLink to="/admin/notifications" icon={<Bell className="size-4.5" aria-hidden />} badge={unread ? String(unread) : undefined}>
+      <SideLink to="/admin/calendar" icon={<CalendarDays className={icon} aria-hidden />}>
+        Content Calendar
+      </SideLink>
+      <SideLink to="/admin/analytics" icon={<BarChart3 className={icon} aria-hidden />}>
+        Analytics
+      </SideLink>
+      <NavGroup label="Team" />
+      <SideLink to="/admin/notifications" icon={<Bell className={icon} aria-hidden />} badge={unread ? String(unread) : undefined}>
         Notifications
       </SideLink>
-      <SideLink to="/admin/settings" icon={<Settings className="size-4.5" aria-hidden />}>
+      {isOwner && (
+        <SideLink to="/admin/team" icon={<Users className={icon} aria-hidden />}>
+          Team Management
+        </SideLink>
+      )}
+      <SideLink to="/admin/settings" icon={<Settings className={icon} aria-hidden />}>
         Settings
       </SideLink>
-      <p className="kicker mt-8 px-3 text-muted-dark">Coming later</p>
-      <ul className="mt-2 space-y-1 px-3 text-sm text-paper/40">
-        {LATER.map((s) => (
-          <li key={s}>{s}</li>
-        ))}
-      </ul>
     </nav>
   )
 
@@ -314,6 +345,10 @@ function Brand({ compact }: { compact?: boolean }) {
       </span>
     </Link>
   )
+}
+
+function NavGroup({ label }: { label: string }) {
+  return <p className="kicker mt-5 mb-1 px-3 text-muted-dark">{label}</p>
 }
 
 function SideLink({ to, end, icon, badge, children }: { to: string; end?: boolean; icon: ReactNode; badge?: string; children: string }) {

@@ -132,7 +132,7 @@ for (const b of BOOKS) {
   expect(!b.buyUrl || b.buyUrl.startsWith('https://'), `${where}: buyUrl must be an https URL`)
 }
 
-const ROUTES = ['/', '/episodes', '/clips', '/books', '/about', '/tell-your-story', '/privacy']
+const ROUTES = ['/', '/episodes', '/clips', '/books', '/about', '/tell-your-story', '/privacy', '/news', '/newsletter']
 for (const item of PRIMARY_NAV) expect(ROUTES.includes(item.to), `Navigation item "${item.label}" points to an unknown route "${item.to}"`)
 expect(SITE.url.startsWith('https://') && !SITE.url.endsWith('/'), 'SITE.url must be an https origin without a trailing slash')
 for (const [network, href] of Object.entries(SITE.social)) expect(!href || href.startsWith('https://'), `SITE.social.${network} must be empty or an https URL`)

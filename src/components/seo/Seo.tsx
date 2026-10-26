@@ -7,7 +7,9 @@ interface SeoProps {
   description?: string
   image?: string
   imageAlt?: string
-  type?: 'website' | 'video.episode' | 'video.other' | 'profile'
+  type?: 'website' | 'video.episode' | 'video.other' | 'profile' | 'article'
+  /** Overrides the canonical URL, e.g. for an article that first appeared elsewhere */
+  canonical?: string
   /** JSON-LD structured data object(s) */
   jsonLd?: Record<string, unknown> | Record<string, unknown>[]
   noindex?: boolean
@@ -46,6 +48,7 @@ export function Seo({
   type = 'website',
   jsonLd,
   noindex,
+  canonical,
 }: SeoProps) {
   const { pathname } = useLocation()
   const ldString = jsonLd ? JSON.stringify(jsonLd) : ''
@@ -58,7 +61,7 @@ export function Seo({
     document.title = fullTitle
     setMeta('name', 'description', description)
     setMeta('name', 'robots', noindex ? 'noindex, follow' : 'index, follow')
-    setCanonical(url || SITE.url)
+    setCanonical(canonical || url || SITE.url)
 
     setMeta('property', 'og:title', title ?? fullTitle)
     setMeta('property', 'og:description', description)
@@ -81,7 +84,7 @@ export function Seo({
       document.head.appendChild(script)
     }
     return () => script?.remove()
-  }, [title, description, image, imageAlt, type, ldString, noindex, pathname])
+  }, [title, description, image, imageAlt, type, ldString, noindex, pathname, canonical])
 
   return null
 }

@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { buttonClass } from '../../components/ui/buttonClass'
 import { inputClass } from '../../components/inbox/shared'
 import { PLATFORM_KEYS, PLATFORMS, POST_STATUSES, STATUS_LABEL, utcToZoned, type Platform } from '../../lib/social'
 import { useAdmin, friendlyError } from '../context'
 import { PLATFORM_STYLE, type AccountRow, type PostRow } from './shared'
+import { ConfirmButton, Notice } from '../ui'
+import { API_ERRORS, api } from '../lib'
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
@@ -96,17 +98,38 @@ export function CalendarTab({ posts, zone }: { posts: PostRow[]; zone: string })
 }
 
 const SETUP: Record<Platform, string> = {
-  instagram: 'Needs an Instagram Business or Creator account linked to a Facebook Page. Automatic posting goes through Meta’s official API (app review required) or a scheduling service such as Buffer.',
-  facebook: 'Needs a Facebook Page you manage. Automatic posting goes through Meta’s official API (app review required) or a scheduling service such as Buffer.',
-  tiktok: 'Needs a TikTok Business account. TikTok’s Content Posting API requires an app audit before posts can be public; a scheduling service such as Buffer is usually quicker.',
-  youtube: 'Community posts can’t be created through YouTube’s API, so these are always posted by hand in YouTube Studio. Video details can be managed with YouTube’s API later.',
-  x: 'Needs an X account. Posting through X’s API requires a paid API plan; a scheduling service such as Buffer is an alternative.',
+  instagram: 'Needs an Instagram Business or Creator account linked to your Facebook Page. Connecting Facebook connects Instagram too. Instagram posts need an image or video.',
+  facebook: 'Needs a Facebook Page you manage and a Meta developer app (Settings → Integrations has the steps). Text, link, image and video posts.',
+  tiktok: 'Needs a TikTok developer app. Until TikTok audits the app, videos posted through it are visible only to the account; post publicly by hand until then.',
+  youtube: 'Approved Shorts (clips) upload to the channel. Community posts can’t be made through YouTube’s API, so those are always posted by hand in YouTube Studio.',
+  x: 'Needs an X developer app with an API plan that allows posting. Text posts go out automatically; posts with video are published by hand.',
 }
 
-/** Which accounts are connected. Connections are made on the server, never by typing tokens in here. */
+const CONNECTION: Record<string, { label: string; style: string }> = {
+  connected: { label: 'Connected', style: 'bg-[#1f7a4d] text-white' },
+  expired: { label: 'Sign-in expired', style: 'bg-yellow text-ink' },
+  error: { label: 'Connection error', style: 'bg-danger text-white' },
+  not_connected: { label: 'Not connected', style: 'bg-line text-ink' },
+}
+
+const OAUTH_ERRORS: Record<string, string> = {
+  declined: 'The connection was cancelled on the platform’s page.',
+  expired: 'That sign-in took too long. Try connecting again.',
+  forbidden: 'Only an owner can connect accounts.',
+  invalid: 'The platform sent back an unexpected answer. Try again.',
+  'no-facebook-page': 'No Facebook Page was found on that account.',
+  'no-youtube-channel': 'No YouTube channel was found on that Google account.',
+}
+
+/** Which accounts are connected. Owners connect with each platform’s own sign-in page; no passwords or keys are typed here. */
 export function AccountsTab({ accounts, onChanged }: { accounts: AccountRow[]; onChanged: () => void }) {
-  const { db, isOwner, toast } = useAdmin()
+  const { db, session, isOwner, toast } = useAdmin()
+  const [params, setParams] = useSearchParams()
   const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [busy, setBusy] = useState<string | null>(null)
+  const connected = params.get('connected')
+  const oauthError = params.get('oauth_error')
+  const migrated = accounts.some((a) => a.status !== undefined)
 
   async function saveLink(platform: Platform) {
     const url = (drafts[platform] ?? '').trim()
@@ -117,23 +140,74 @@ export function AccountsTab({ accounts, onChanged }: { accounts: AccountRow[]; o
     onChanged()
   }
 
+  async function connect(platform: Platform) {
+    setBusy(platform)
+    try {
+      const { url } = await api<{ url: string }>(session.access_token, '/api/admin/oauth-start', { platform })
+      window.location.assign(url)
+    } catch (e) {
+      toast((e as Error).message, 'error')
+      setBusy(null)
+    }
+  }
+
+  async function disconnect(platform: Platform) {
+    const { error } = await db.rpc('disconnect_account', { target: platform })
+    if (error) return toast(friendlyError(error), 'error')
+    toast('Disconnected')
+    onChanged()
+  }
+
   return (
     <div className="space-y-4">
+      {connected && (
+        <Notice kind="success">
+          Connected: {connected.split(',').map((p) => PLATFORMS[p as Platform]?.label ?? p).join(', ')}.{' '}
+          <button type="button" className="font-semibold underline" onClick={() => setParams((p) => (p.delete('connected'), p))}>
+            Dismiss
+          </button>
+        </Notice>
+      )}
+      {oauthError && <Notice kind="error">{OAUTH_ERRORS[oauthError] ?? API_ERRORS[oauthError] ?? 'The account couldn’t be connected. Try again.'}</Notice>}
       <p className="max-w-3xl text-muted">
-        Drafting, approving and scheduling work without connecting anything. Until an account is connected, approved posts are published by hand: the Publish button copies the text and opens the app. No
-        passwords or access keys are ever entered on this page.
+        Drafting, approving and scheduling work without connecting anything. Connected accounts publish approved posts automatically at their scheduled time; the rest are published by hand with the Publish button. Setup steps for each
+        platform’s developer app are in{' '}
+        <Link to="/admin/settings?tab=integrations" className="font-semibold text-blue-ink underline">
+          Settings → Integrations
+        </Link>
+        .
       </p>
       <ul className="grid gap-4 md:grid-cols-2">
         {PLATFORM_KEYS.map((p) => {
           const account = accounts.find((a) => a.platform === p)
-          const connected = Boolean(account?.provider)
+          const status = account?.status ?? (account?.provider ? 'connected' : 'not_connected')
+          const c = CONNECTION[status]
           return (
             <li key={p} className="rounded-xl border border-line bg-paper p-5">
               <div className="flex items-center gap-2">
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${PLATFORM_STYLE[p]}`}>{PLATFORMS[p].label}</span>
-                <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold ${connected ? 'bg-[#1f7a4d] text-white' : 'bg-line text-ink'}`}>{connected ? `Connected via ${account?.provider}` : 'Not connected'}</span>
+                <span className={`ml-auto rounded-full px-2.5 py-0.5 text-xs font-semibold ${c.style}`}>{c.label}</span>
               </div>
+              {account?.account_name && <p className="mt-2 font-semibold">{account.account_name}</p>}
+              {account?.connected_at && status === 'connected' && (
+                <p className="text-xs text-muted">
+                  Connected {new Date(account.connected_at).toLocaleDateString()}
+                  {account.expires_at ? ` · sign-in valid until ${new Date(account.expires_at).toLocaleDateString()}` : ''}
+                </p>
+              )}
+              {account?.last_error && status !== 'connected' && <p className="mt-1 text-sm text-danger">{account.last_error}</p>}
               <p className="mt-3 text-sm text-muted">{SETUP[p]}</p>
+              {isOwner && migrated && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {status === 'connected' ? (
+                    <ConfirmButton label="Disconnect" confirm="Disconnect this account?" onConfirm={() => void disconnect(p)} />
+                  ) : (
+                    <button type="button" disabled={busy !== null} className={buttonClass('primary', 'sm')} onClick={() => void connect(p)}>
+                      {busy === p ? 'Opening…' : status === 'expired' ? 'Reconnect' : `Connect ${PLATFORMS[p].label}`}
+                    </button>
+                  )}
+                </div>
+              )}
               {isOwner ? (
                 <div className="mt-3 flex gap-2">
                   <label className="flex-1">

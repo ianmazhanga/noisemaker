@@ -23,7 +23,33 @@ export default function PrivacyPage() {
           </p>
 
           <h2 className={h2}>What this site doesn’t do</h2>
-          <p>It sets no cookies of its own, runs no analytics or advertising trackers, and has no accounts.</p>
+          <p>It sets no cookies of its own, runs no analytics or advertising trackers, and has no public accounts.</p>
+
+          <h2 className={h2}>The newsletter</h2>
+          <p>
+            If you sign up for the{' '}
+            <Link to="/newsletter" className={link}>
+              newsletter
+            </Link>
+            , we keep your email address, the date you signed up, and the exact wording you agreed to, as a record of your consent.
+          </p>
+          <p>
+            <strong className="text-ink">Why:</strong> only to send you the Noisemakers newsletter. We never sell or share your address, and we only start sending once you’ve confirmed it with the link we email you.
+          </p>
+          <p>
+            <strong className="text-ink">Where it’s stored:</strong> in our private team database (Supabase), which only the owners can read, and with our email provider, Mailchimp, which sends the newsletter and tells us
+            how many people opened it.{' '}
+            <a href="https://www.intuit.com/privacy/statement/" target="_blank" rel="noopener noreferrer" className={link}>
+              Mailchimp’s privacy statement<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+          </p>
+          <p>
+            <strong className="text-ink">Your choices:</strong> every newsletter has an Unsubscribe link, and unsubscribing takes effect straight away. You can also ask us to delete your record entirely. These are your rights
+            under South Africa’s Protection of Personal Information Act (POPIA) and similar laws elsewhere.
+          </p>
+
+          <h2 className={h2}>News articles</h2>
+          <p>Articles on the News pages are loaded from our database. Reading them doesn’t send us anything about you beyond the standard request your browser makes.</p>
 
           <h2 className={h2}>The “Tell your story” form</h2>
           <p>

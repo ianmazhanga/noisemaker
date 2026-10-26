@@ -4,6 +4,7 @@ import { PRIMARY_NAV, SITE } from '../../config/site'
 import { getTopics } from '../../lib/content'
 import { Logo } from '../brand/Logo'
 import { SocialLinks } from '../ui/SocialLinks'
+import { NewsletterSignup } from '../news/NewsletterSignup'
 
 const YEAR = new Date().getFullYear()
 const heading = 'kicker text-muted-dark'
@@ -33,6 +34,10 @@ export function Footer() {
           </p>
           <p className={`${heading} mt-8`}>Follow us</p>
           <SocialLinks className="mt-4" />
+          <p className={`${heading} mt-8`}>Newsletter</p>
+          <div className="mt-4 max-w-md">
+            <NewsletterSignup dark />
+          </div>
         </div>
 
         <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7">

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useSearchParams } from 'react-router'
 import { AlertTriangle, Sparkles } from 'lucide-react'
 import { buttonClass } from '../../components/ui/buttonClass'
 import { inputClass } from '../../components/inbox/shared'
@@ -17,7 +18,9 @@ interface Props {
 
 export function CreateTab({ videos, posts, onSaved }: Props) {
   const withPosts = new Set(posts.filter((p) => p.source_type === 'youtube').map((p) => p.source_ref))
-  const [chosen, setChosen] = useState<ChannelVideo | null>(null)
+  const [params] = useSearchParams()
+  // ?video=<id> (from the YouTube Manager) opens with that video chosen.
+  const [chosen, setChosen] = useState<ChannelVideo | null>(() => videos.find((v) => v.youtubeId === params.get('video')) ?? null)
   const [showAll, setShowAll] = useState(false)
   const list = showAll ? videos : videos.slice(0, 8)
 
