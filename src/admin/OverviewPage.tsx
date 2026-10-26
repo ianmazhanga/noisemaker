@@ -22,7 +22,7 @@ const AUDIT_TEXT: Record<string, (target: string, details: Record<string, unknow
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
 export default function OverviewPage() {
-  const { db, profile, canReadStories, isOwner, newStories } = useAdmin()
+  const { db, profile, canReadStories, isOwner, newStories, pendingPosts } = useAdmin()
   const [counts, setCounts] = useState<Record<StoryStatus | 'total', number> | null>(null)
   const [activity, setActivity] = useState<Activity[] | null>(null)
   const [error, setError] = useState('')
@@ -101,6 +101,25 @@ export default function OverviewPage() {
         </section>
       )}
 
+      {pendingPosts !== null && (
+        <section aria-labelledby="social-heading" className="mt-10">
+          <h2 id="social-heading" className="kicker text-muted">
+            Social media
+          </h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Link to="/admin/social?status=pending_approval" className="group col-span-2 rounded-xl bg-yellow p-5 text-ink transition-transform hover:-translate-y-0.5 lg:col-span-1">
+              <p className="text-sm font-semibold">Posts awaiting approval</p>
+              <p className="mt-2 font-display text-5xl font-[800]">{pendingPosts}</p>
+              <p className="mt-3 inline-flex items-center gap-1 text-sm font-semibold">
+                {isOwner ? 'Review them' : 'View them'} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </p>
+            </Link>
+            <Stat label="Create posts from a video" value={null} to="/admin/social?tab=create" />
+            <Stat label="Content calendar" value={null} to="/admin/social?tab=calendar" />
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="activity-heading" className="mt-10">
         <h2 id="activity-heading" className="kicker text-muted">
           Recent activity
@@ -133,17 +152,17 @@ export default function OverviewPage() {
         <h2 id="next-heading" className="font-semibold">
           Not connected yet
         </h2>
-        <p className="mt-1 text-muted">Video production, social media, newsletters, news and analytics will appear here as each one is built and connected. Nothing on this page is sample data.</p>
+        <p className="mt-1 text-muted">Video production, newsletters, news and analytics will appear here as each one is built and connected. Nothing on this page is sample data.</p>
       </section>
     </div>
   )
 }
 
-function Stat({ label, value, to }: { label: string; value: number; to: string }) {
+function Stat({ label, value, to }: { label: string; value: number | null; to: string }) {
   return (
     <Link to={to} className="rounded-xl border border-line bg-paper p-5 transition-colors hover:border-ink/40">
       <p className="text-sm font-semibold text-muted">{label}</p>
-      <p className="mt-2 font-display text-4xl font-[800]">{value}</p>
+      {value === null ? <ArrowRight className="mt-3 size-6" aria-hidden /> : <p className="mt-2 font-display text-4xl font-[800]">{value}</p>}
     </Link>
   )
 }

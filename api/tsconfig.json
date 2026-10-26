@@ -12,5 +12,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["**/*.ts", "../src/lib/storyForm.ts"]
+  "include": ["**/*.ts", "../src/lib/storyForm.ts", "../src/lib/social.ts"]
 }

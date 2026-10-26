@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, NavLink, Outlet } from 'react-router'
 import type { Session } from '@supabase/supabase-js'
-import { Bell, Inbox, LayoutDashboard, LogOut, Menu, Settings, X } from 'lucide-react'
+import { Bell, Inbox, LayoutDashboard, LogOut, Megaphone, Menu, Settings, X } from 'lucide-react'
 import { supabase, ROLE_LABEL, type Profile } from '../lib/supabase'
 import { Seo } from '../components/seo/Seo'
 import { LogoMark } from '../components/brand/Logo'
@@ -10,7 +10,7 @@ import { inputClass } from '../components/inbox/shared'
 import { AdminContext, friendlyError, type AdminState } from './context'
 
 /** Sections from the plan that aren't built yet. Shown greyed out so nobody mistakes them for working features. */
-const LATER = ['AI Content Studio', 'Video Production', 'Social Media Manager', 'YouTube Manager', 'AI News Agent', 'News Manager', 'Newsletter Manager', 'Content Calendar', 'Analytics']
+const LATER = ['AI News Agent', 'Newsletter Manager', 'Video Production', 'Content Calendar', 'Analytics']
 
 export function Spinner({ label }: { label: string }) {
   return (
@@ -160,6 +160,7 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
   const canReadStories = isOwner || profile.can_view_stories
   const [newStories, setNewStories] = useState<number | null>(null)
   const [unread, setUnread] = useState<number | null>(null)
+  const [pendingPosts, setPendingPosts] = useState<number | null>(null)
   const [toasts, setToasts] = useState<{ id: number; message: string; kind: 'success' | 'error' }[]>([])
   const toastId = useRef(0)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -169,6 +170,8 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
       const { count } = await db.from('story_submissions').select('id', { count: 'exact', head: true }).eq('status', 'new')
       setNewStories(count ?? 0)
     }
+    const posts = await db.from('social_posts').select('id', { count: 'exact', head: true }).eq('status', 'pending_approval')
+    setPendingPosts(posts.error ? null : (posts.count ?? 0))
     const [{ data: notes }, { data: reads }] = await Promise.all([
       db.from('notifications').select('id').order('created_at', { ascending: false }).limit(200),
       db.from('notification_reads').select('notification_id'),
@@ -185,6 +188,7 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
       .channel('admin-counts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'story_submissions' }, () => void refreshCounts())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => void refreshCounts())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'social_posts' }, () => void refreshCounts())
       .subscribe()
     return () => void db.removeChannel(channel)
   }, [db, refreshCounts])
@@ -196,8 +200,8 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
   }, [])
 
   const state = useMemo<AdminState>(
-    () => ({ db, session, profile, canReadStories, isOwner, newStories, unread, refreshCounts: () => void refreshCounts(), refreshProfile, toast }),
-    [db, session, profile, canReadStories, isOwner, newStories, unread, refreshCounts, refreshProfile, toast],
+    () => ({ db, session, profile, canReadStories, isOwner, newStories, unread, pendingPosts, refreshCounts: () => void refreshCounts(), refreshProfile, toast }),
+    [db, session, profile, canReadStories, isOwner, newStories, unread, pendingPosts, refreshCounts, refreshProfile, toast],
   )
 
   const nav = (
@@ -210,6 +214,9 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
           Story Inbox
         </SideLink>
       )}
+      <SideLink to="/admin/social" icon={<Megaphone className="size-4.5" aria-hidden />} badge={pendingPosts ? `${pendingPosts} to approve` : undefined}>
+        Social Media Manager
+      </SideLink>
       <SideLink to="/admin/notifications" icon={<Bell className="size-4.5" aria-hidden />} badge={unread ? String(unread) : undefined}>
         Notifications
       </SideLink>
