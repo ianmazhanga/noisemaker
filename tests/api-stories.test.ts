@@ -121,3 +121,12 @@ test('a flood of submissions is turned away before anything is saved', async () 
   assert.equal(res.status, 429)
   assert.ok(!calls.some((c) => c.init?.method === 'POST'))
 })
+
+test('a retry of a submission that was already saved still succeeds, with the same reference', async () => {
+  const calls: { url: string; init?: RequestInit }[] = []
+  // 409: the reference is already in the table because the first attempt got through.
+  fakeSupabase(calls, [], 409)
+  const res = await handler(post({ form: valid, reference: 'NM-261026-K3QX' }))
+  assert.equal(res.status, 200)
+  assert.deepEqual(await res.json(), { ok: true, reference: 'NM-261026-K3QX' })
+})

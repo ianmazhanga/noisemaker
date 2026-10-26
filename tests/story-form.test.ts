@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { EMPTY_FORM, FIELD_NAMES, fingerprint, makeReference, toE164, toSubmission, validate, type StoryForm } from '../src/lib/storyForm.ts'
+import { EMPTY_FORM, FIELD_NAMES, fingerprint, makeReference, submitErrorMessage, toE164, toSubmission, validate, type StoryForm } from '../src/lib/storyForm.ts'
 
 const valid: StoryForm = {
   ...EMPTY_FORM,
@@ -112,4 +112,12 @@ test('applicant details only go to the Story Inbox function', () => {
   assert.doesNotMatch(page, /console\./)
   assert.doesNotMatch(page, /localStorage/)
   assert.deepEqual([...page.matchAll(/fetch\(([^,]+),/g)].map((m) => m[1]), ["'/api/stories'"])
+})
+
+test('send errors explain what to do, by server answer', () => {
+  assert.match(submitErrorMessage(0, true), /offline/)
+  assert.match(submitErrorMessage(429, false), /few minutes/)
+  assert.match(submitErrorMessage(503, false), /temporarily unavailable/)
+  assert.match(submitErrorMessage(400, false), /check your answers/)
+  for (const status of [0, 400, 429, 500, 502, 503]) assert.match(submitErrorMessage(status, false), /answers are still here|check your answers/)
 })
