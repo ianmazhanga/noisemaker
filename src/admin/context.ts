@@ -15,6 +15,8 @@ export interface AdminState {
   /** Live counts. Null while loading or when the person can't see them. */
   newStories: number | null
   unread: number | null
+  /** Social posts waiting for an owner's approval. Null until the social tables exist. */
+  pendingPosts: number | null
   refreshCounts: () => void
   refreshProfile: () => Promise<void>
   toast: (message: string, kind?: 'success' | 'error') => void

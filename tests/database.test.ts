@@ -140,3 +140,92 @@ test('only the owner reads the audit log', async () => {
   assert.ok((await as(OWNER, 'select * from public.audit_logs')).length > 0)
   assert.equal((await as(MANAGER, 'select * from public.audit_logs')).length, 0)
 })
+
+// ---------------------------------------------------------------------------
+// Social Media Manager
+// ---------------------------------------------------------------------------
+
+async function draft(who: string, caption = 'Watch the new conversation') {
+  const [row] = await as<{ id: string }>(who, `insert into public.social_posts (platform, caption, hashtags) values ('instagram', $1, '{noisemakers}') returning id`, [caption])
+  return row.id
+}
+const statusOf = async (id: string) => ((await admin('select status, approved_by from public.social_posts where id = $1', [id])).rows[0] as { status: string; approved_by: string | null })
+
+test('the public and accounts without a role get nothing from the social tables', async () => {
+  await assert.rejects(as('anon', 'select * from public.social_posts'), /permission denied/)
+  await assert.rejects(as('anon', 'select * from public.social_accounts'), /permission denied/)
+  assert.equal((await as(NEWCOMER, 'select * from public.social_accounts')).length, 0)
+  await assert.rejects(draft(NEWCOMER), /row-level security/)
+})
+
+test('content managers draft and submit posts, but only owners approve', async () => {
+  const id = await draft(MANAGER)
+  await as(MANAGER, 'select public.submit_post($1)', [id])
+  assert.equal((await statusOf(id)).status, 'pending_approval')
+  await assert.rejects(as(MANAGER, 'select public.approve_post($1)', [id]), /Only an owner/)
+  await assert.rejects(as(MANAGER, `update public.social_posts set status = 'approved' where id = $1`, [id]), /permission denied/)
+  await as(OWNER, 'select public.approve_post($1)', [id])
+  assert.deepEqual(await statusOf(id), { status: 'approved', approved_by: OWNER })
+  const [note] = (await admin(`select title, audience from public.notifications where kind = 'post.pending' and link like '%' || $1`, [id])).rows as { title: string; audience: string }[]
+  assert.deepEqual(note, { title: 'Post awaiting approval: Instagram', audience: 'owner' })
+})
+
+test('new posts always start as drafts, whatever the request says', async () => {
+  await assert.rejects(as(OWNER, `insert into public.social_posts (platform, caption, status) values ('x', 'Hi', 'published')`), /permission denied/)
+})
+
+test('nothing is scheduled or published without an owner’s approval', async () => {
+  const id = await draft(OWNER)
+  await assert.rejects(as(OWNER, `select public.schedule_post($1, now() + interval '1 day', 'Africa/Johannesburg')`, [id]), /Approve the post/)
+  await assert.rejects(as(OWNER, `select public.mark_post_published($1, '')`, [id]), /Only approved posts/)
+  // Even the secret key (which skips Row Level Security) can't publish an unapproved post.
+  await assert.rejects(admin(`update public.social_posts set status = 'published' where id = $1`, [id]), /must be approved/)
+  await as(OWNER, 'select public.approve_post($1)', [id])
+  await as(OWNER, `select public.schedule_post($1, now() + interval '1 day', 'America/New_York')`, [id])
+  const row = (await admin('select status, timezone from public.social_posts where id = $1', [id])).rows[0]
+  assert.deepEqual(row, { status: 'scheduled', timezone: 'America/New_York' })
+  await assert.rejects(as(OWNER, `select public.schedule_post($1, now() + interval '1 day', 'Mars/Olympus')`, [id]), /Unknown time zone/)
+  await assert.rejects(as(OWNER, `select public.schedule_post($1, now() - interval '1 day', 'UTC')`, [id]), /in the future/)
+  await assert.rejects(as(MANAGER, `select public.schedule_post($1, now() + interval '2 days', 'UTC')`, [id]), /Only an owner/)
+})
+
+test('editing an approved post sends it back for approval', async () => {
+  const id = await draft(OWNER)
+  await as(OWNER, 'select public.approve_post($1)', [id])
+  await as(OWNER, `select public.schedule_post($1, now() + interval '1 day', 'UTC')`, [id])
+  await as(MANAGER, `update public.social_posts set caption = 'Changed wording' where id = $1`, [id])
+  const row = (await admin('select status, approved_by, scheduled_at from public.social_posts where id = $1', [id])).rows[0]
+  assert.deepEqual(row, { status: 'pending_approval', approved_by: null, scheduled_at: null })
+})
+
+test('rejections record who and why; published posts are locked', async () => {
+  const id = await draft(MANAGER)
+  await as(MANAGER, 'select public.submit_post($1)', [id])
+  await as(OWNER, `select public.reject_post($1, 'Wrong guest name')`, [id])
+  const row = (await admin('select status, rejected_by, rejection_reason from public.social_posts where id = $1', [id])).rows[0]
+  assert.deepEqual(row, { status: 'rejected', rejected_by: OWNER, rejection_reason: 'Wrong guest name' })
+
+  const done = await draft(OWNER)
+  await as(OWNER, 'select public.approve_post($1)', [done])
+  await as(OWNER, `select public.mark_post_published($1, 'https://www.instagram.com/p/abc')`, [done])
+  assert.equal((await statusOf(done)).status, 'published')
+  assert.equal((await as(OWNER, `update public.social_posts set caption = 'x' where id = $1 returning id`, [done])).length, 0)
+  assert.equal((await as(OWNER, 'delete from public.social_posts where id = $1 returning id', [done])).length, 0)
+  const actions = (await admin(`select action from public.audit_logs where target = $1 order by at`, [done])).rows.map((r) => (r as { action: string }).action)
+  assert.deepEqual(actions, ['post.approved', 'post.published'])
+})
+
+test('authors delete their own drafts; only owners delete others', async () => {
+  const mine = await draft(MANAGER)
+  const theirs = await draft(OWNER)
+  assert.equal((await as(MANAGER, 'delete from public.social_posts where id = $1 returning id', [theirs])).length, 0)
+  assert.equal((await as(MANAGER, 'delete from public.social_posts where id = $1 returning id', [mine])).length, 1)
+  assert.equal((await as(OWNER, 'delete from public.social_posts where id = $1 returning id', [theirs])).length, 1)
+})
+
+test('account connections: owners edit profile links, nobody sets the connection by hand', async () => {
+  assert.equal((await as(MANAGER, 'select * from public.social_accounts')).length, 5)
+  assert.equal((await as(MANAGER, `update public.social_accounts set display_name = 'x' returning platform`)).length, 0)
+  assert.equal((await as(OWNER, `update public.social_accounts set profile_url = 'https://www.instagram.com/noisemakers' where platform = 'instagram' returning platform`)).length, 1)
+  await assert.rejects(as(OWNER, `update public.social_accounts set provider = 'buffer' where platform = 'instagram'`), /permission denied/)
+})

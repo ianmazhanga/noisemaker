@@ -20,6 +20,7 @@ const AdminOverview = lazy(() => import('./admin/OverviewPage'))
 const AdminStories = lazy(() => import('./admin/StoriesPage'))
 const AdminNotifications = lazy(() => import('./admin/NotificationsPage'))
 const AdminSettings = lazy(() => import('./admin/SettingsPage'))
+const AdminSocial = lazy(() => import('./admin/social/SocialPage'))
 const AdminResetPassword = lazy(() => import('./admin/ResetPasswordPage'))
 
 const router = createBrowserRouter([
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <AdminOverview /> },
       { path: 'stories', element: <AdminStories /> },
+      { path: 'social', element: <AdminSocial /> },
       { path: 'notifications', element: <AdminNotifications /> },
       { path: 'settings', element: <AdminSettings /> },
       { path: '*', element: <Navigate to="/admin" replace /> },
