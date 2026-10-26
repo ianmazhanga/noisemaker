@@ -12,6 +12,8 @@ export interface AdminState {
   /** Owners always; content managers when the owner allows it. The database enforces the same rule. */
   canReadStories: boolean
   isOwner: boolean
+  /** Owners, Editors and Content Managers can write drafts. Viewers only read. */
+  isWriter: boolean
   /** Live counts. Null while loading or when the person can't see them. */
   newStories: number | null
   unread: number | null
@@ -35,6 +37,9 @@ export interface StoryRow extends Record<(typeof FIELD_NAMES)[number], string> {
   received_at: string
   status: StoryStatus
   status_changed_at: string | null
+  // Added by the newsroom migration; undefined before it runs.
+  assigned_to?: string | null
+  interview_project_id?: string | null
 }
 
 /** A database row in the shape the inbox components already use. */

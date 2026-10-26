@@ -2,7 +2,7 @@
 
 The website for **Noisemakers**, a video podcast of inspirational interviews and stories about marriage, parenting, family and recovery. Episodes are published on YouTube as [Noisemakers News Network (@noisemakersnews)](https://www.youtube.com/@noisemakersnews).
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · React Router 7 · Framer Motion (dialogs only) · Lucide icons. Fonts are self-hosted with Fontsource (Archivo, Inter, Source Serif 4). Hosted on **Vercel**, with a **Supabase** database for story submissions and the owner dashboard. The only server code is the two small functions in `api/`.
+React 19 · TypeScript · Vite · Tailwind CSS 4 · React Router 7 · Framer Motion (dialogs only) · Lucide icons. Fonts are self-hosted with Fontsource (Archivo, Inter, Source Serif 4). Hosted on **Vercel**, with a **Supabase** database for story submissions, news and the owner dashboard. Server code is in `api/`; the video worker is in `worker/`.
 
 ```bash
 npm install
@@ -25,6 +25,8 @@ npm run check:feed     # no-key check for recent uploads the sync hasn't picked 
 | `/clips` | Every YouTube Short, with links to the full episode where there is one |
 | `/about` | About the podcast, topics, and every guest |
 | `/tell-your-story` | Form for people who want to share their story or request an introductory call |
+| `/news`, `/news/:slug` | Published news articles (from the News Manager) |
+| `/newsletter` | Newsletter sign-up (double opt-in) |
 | `/privacy` | What the site collects and why |
 
 Old URLs redirect: `/videos` and `/latest` go to `/episodes`; `/contact` and `/collaborate` go to `/tell-your-story`.
@@ -92,9 +94,11 @@ The key lives only in GitHub's encrypted secrets. It's never in the code or the 
 
 ## Owner dashboard
 
-`/admin` is the private owner dashboard: a separate sign-in for each person (Owner or Content Manager), and the **Story Inbox** with statuses, private notes, contact buttons, a live "new stories" counter and notifications. It runs on Supabase (`supabase/migrations/`) plus two Vercel Functions: `api/stories.ts` saves each story, and `api/admin/invite.ts` sends invitations.
+`/admin` is the private newsroom dashboard: a separate sign-in for each person (Owner, Editor, Content Manager or Viewer); the **Story Inbox**; **Social Media Manager**; **Video Production** with an AI interview assistant; the **AI Shorts Generator**; **AI News Agent** and **News Manager** (which publishes to `/news`); **Newsletter Manager**; **Content Calendar**; **YouTube Manager**; **Analytics**; notifications, team management and integration settings. Owners approve everything before it's published or sent.
 
-**Setup and day-to-day use: [docs/admin-setup.md](docs/admin-setup.md).**
+It runs on Supabase (`supabase/migrations/`), Vercel Functions in `api/` (shared code in `api/_lib/`), a video worker in `worker/` (FFmpeg, run by GitHub Actions), and scheduled jobs (`.github/workflows/scheduled-jobs.yml` plus Vercel's daily cron).
+
+**Setup: [docs/admin-setup.md](docs/admin-setup.md), then [docs/newsroom-setup.md](docs/newsroom-setup.md).**
 
 ---
 

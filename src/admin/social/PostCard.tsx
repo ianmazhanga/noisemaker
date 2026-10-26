@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Check, Copy, ExternalLink, Pencil, RefreshCw, Send, Sparkles, Trash2, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, Copy, ExternalLink, Paperclip, Pencil, RefreshCw, Send, Sparkles, Trash2, X } from 'lucide-react'
+import { api, uploadFile, videoDuration } from '../lib'
 import { buttonClass } from '../../components/ui/buttonClass'
 import { inputClass } from '../../components/inbox/shared'
 import { cleanHashtags, formatInZone, fullText, PLATFORMS, POSTING_GUIDANCE, STATUS_LABEL, TIME_ZONES, utcToZoned, zonedToUtc } from '../../lib/social'
@@ -33,7 +34,7 @@ export function PostCard({ post, account, video, names, zone, open, onChanged }:
   const [scheduleAt, setScheduleAt] = useState(post.scheduled_at ? utcToZoned(new Date(post.scheduled_at), post.timezone || zone) : '')
   const [publishedUrl, setPublishedUrl] = useState('')
 
-  const connected = Boolean(account?.provider)
+  const connected = account?.status ? account.status === 'connected' : Boolean(account?.provider)
   const hashtags = cleanHashtags(tags.split(/[\s,]+/), info.maxHashtags)
   const length = caption.trim().length
   const name = (id: string | null) => (id ? (names[id] ?? 'an owner') : '')
@@ -91,7 +92,29 @@ export function PostCard({ post, account, video, names, zone, open, onChanged }:
     void run('schedule', () => db.rpc('schedule_post', { post_id: post.id, at, tz: scheduleZone }), `Scheduled for ${formatInZone(at, scheduleZone)}`)
   }
 
-  const canEdit = post.status !== 'published'
+  async function publishNow() {
+    setBusy('publish-now')
+    try {
+      const { result } = await api<{ result: string }>(session.access_token, '/api/admin/publish-post', { postId: post.id })
+      const messages: Record<string, [string, 'success' | 'error']> = {
+        published: [`Published to ${info.label}`, 'success'],
+        failed: ['Publishing failed. The reason is on the post.', 'error'],
+        manual: ['This post can’t be published automatically. The reason is on the post; publish it by hand.', 'error'],
+        skipped: ['This post is already being published, or isn’t approved.', 'error'],
+        'not-connected': [`${info.label} isn’t connected.`, 'error'],
+      }
+      const [text, kind] = messages[result] ?? ['Done', 'success']
+      toast(text, kind)
+      setPanel(null)
+      onChanged()
+    } catch (e) {
+      toast((e as Error).message, 'error')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const canEdit = post.status !== 'published' && !post.publish_started_at
   const showText = editing ? null : (
     <div className="rounded-lg bg-bone px-4 py-3">
       <p className="whitespace-pre-wrap">{post.caption || <span className="text-muted">No caption yet.</span>}</p>
@@ -148,6 +171,8 @@ export function PostCard({ post, account, video, names, zone, open, onChanged }:
           showText
         )}
       </div>
+
+      <Media post={post} editable={canEdit && editing} onChanged={onChanged} />
 
       <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
         {post.scheduled_at && (
@@ -228,6 +253,11 @@ export function PostCard({ post, account, video, names, zone, open, onChanged }:
               {post.status === 'scheduled' ? 'Change time' : 'Schedule'}
             </button>
           )}
+          {isOwner && post.status === 'failed' && post.approved_by && (
+            <button type="button" className={buttonClass('outline', 'sm')} disabled={busy !== null} onClick={() => void run('retry', () => db.rpc('retry_post', { post_id: post.id }), 'Back to Approved. Check the platform first, then publish or schedule it.')}>
+              <RefreshCw className="size-4" aria-hidden /> Retry
+            </button>
+          )}
           {['approved', 'scheduled', 'failed'].includes(post.status) && post.approved_by && (
             <button type="button" className={buttonClass('primary', 'sm')} onClick={() => setPanel(panel === 'publish' ? null : 'publish')}>
               Publish
@@ -286,7 +316,17 @@ export function PostCard({ post, account, video, names, zone, open, onChanged }:
       {panel === 'publish' && (
         <div className="mt-3 rounded-lg border border-line p-3">
           {connected ? (
-            <p className="text-sm text-muted">Automatic publishing to {info.label} isn’t available yet. Post it yourself using the steps below.</p>
+            isOwner ? (
+              <div className="mb-3">
+                <p className="text-sm text-muted">{info.label} is connected, so this can be posted for you now. It’s published once: if anything goes wrong it’s marked Failed, never retried by itself.</p>
+                <button type="button" className={buttonClass('primary', 'sm', 'mt-2')} disabled={busy !== null} onClick={() => void publishNow()}>
+                  <Send className="size-4" aria-hidden /> {busy === 'publish-now' ? 'Publishing…' : `Publish to ${info.label} now`}
+                </button>
+                <p className="mt-3 text-sm text-muted">Or post it yourself:</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">An owner can publish this to {info.label} now, or it goes out at its scheduled time.</p>
+            )
           ) : (
             <p className="text-sm text-muted">
               {info.label} isn’t connected, so the dashboard can’t post for you yet. Copy the text, post it in {info.label}, then mark it as published here.
@@ -334,5 +374,87 @@ export function PostCard({ post, account, video, names, zone, open, onChanged }:
         </div>
       )}
     </article>
+  )
+}
+
+/** The image or video attached to a post (a rendered clip, or an upload). Changing it needs a new approval. */
+function Media({ post, editable, onChanged }: { post: PostRow; editable: boolean; onChanged: () => void }) {
+  const { db, session, toast } = useAdmin()
+  const [file, setFile] = useState<{ url: string; mime: string; name: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+  const assetId = post.media_asset_id
+
+  useEffect(() => {
+    let live = true
+    if (!assetId) return
+    void db
+      .from('media_assets')
+      .select('bucket, path, mime_type, filename')
+      .eq('id', assetId)
+      .maybeSingle()
+      .then(async ({ data }) => {
+        const a = data as { bucket: string; path: string; mime_type: string; filename: string } | null
+        if (!a) return
+        const url = a.bucket === 'site-images' ? db.storage.from(a.bucket).getPublicUrl(a.path).data.publicUrl : (await db.storage.from(a.bucket).createSignedUrl(a.path, 3600)).data?.signedUrl
+        if (live && url) setFile({ url, mime: a.mime_type, name: a.filename })
+      })
+    return () => {
+      live = false
+    }
+  }, [db, assetId])
+
+  async function attach(f: File) {
+    setBusy(true)
+    try {
+      const kind = f.type.startsWith('image/') ? 'image' : 'source_video'
+      const { assetId: id } = await uploadFile(db, session.access_token, f, kind, kind === 'source_video' ? { durationSeconds: (await videoDuration(f)) || undefined } : {})
+      const { error } = await db.from('social_posts').update({ media_asset_id: id }).eq('id', post.id)
+      if (error) throw new Error(friendlyError(error))
+      toast(post.status === 'approved' || post.status === 'scheduled' ? 'Attached. The post needs approving again.' : 'Attached')
+      onChanged()
+    } catch (e) {
+      toast((e as Error).message, 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function detach() {
+    const { error } = await db.from('social_posts').update({ media_asset_id: null }).eq('id', post.id)
+    if (error) return toast(friendlyError(error), 'error')
+    setFile(null)
+    onChanged()
+  }
+
+  // Before the newsroom migration there's no media column, so nothing to show.
+  if (post.media_asset_id === undefined) return null
+  const inputId = `media-${post.id}`
+  return (
+    <div className="mt-3">
+      {assetId && file && (
+        <div className="flex flex-wrap items-start gap-3">
+          {file.mime.startsWith('image/') ? <img src={file.url} alt="" className="max-h-48 rounded-lg" /> : <video src={file.url} controls playsInline preload="metadata" className="max-h-64 rounded-lg bg-ink" aria-label={file.name} />}
+          <div className="text-sm">
+            <p className="font-semibold">{post.clip_id ? 'AI Short' : 'Attached file'}</p>
+            <a href={file.url} download className="font-semibold text-blue-ink underline">
+              Download
+            </a>
+            {editable && (
+              <button type="button" className="ml-3 font-semibold text-danger underline" onClick={() => void detach()}>
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {editable && (
+        <>
+          <input id={inputId} type="file" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime" className="sr-only" onChange={(e) => e.target.files?.[0] && void attach(e.target.files[0])} />
+          <label htmlFor={inputId} className={buttonClass('outline', 'sm', `mt-2 cursor-pointer ${busy ? 'pointer-events-none opacity-50' : ''}`)}>
+            <Paperclip className="size-4" aria-hidden /> {busy ? 'Uploading…' : assetId ? 'Replace image or video' : 'Attach an image or video'}
+          </label>
+        </>
+      )}
+    </div>
   )
 }

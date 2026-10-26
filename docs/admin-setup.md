@@ -92,8 +92,8 @@ Submissions are stored only in the dashboard database. The privacy page promises
 - **Email service (SMTP):** free plans cover invitations and password resets.
 - Check each provider's pricing page for current limits.
 
-## Not built yet
+## Newsroom sections
 
-Video production, AI editing suggestions, social media, YouTube management, the AI news agent, news articles, newsletters, the content calendar and analytics. They're listed under "Coming later" in the sidebar. Two-step sign-in (MFA) is also planned for the owner account. Each part will be added and tested separately.
+Video production, AI Shorts, the AI News Agent, News Manager, Newsletter Manager, Content Calendar, YouTube Manager, Analytics, Team Management and Integration Settings are built. Their setup (one more database update, then each outside service) is in **[docs/newsroom-setup.md](newsroom-setup.md)**. Two-step sign-in (MFA) for the owner account is still planned.
 
 The old `/inbox` address now goes to the Story Inbox.

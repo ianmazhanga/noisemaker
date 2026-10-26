@@ -33,7 +33,8 @@ export default function SocialPage() {
   const load = useCallback(async () => {
     const [p, a, n] = await Promise.all([
       db.from('social_posts').select('*').order('updated_at', { ascending: false }).limit(1000),
-      db.from('social_accounts').select('platform, display_name, profile_url, provider, connected_at'),
+      // '*' so this works both before and after the newsroom migration adds the connection columns.
+      db.from('social_accounts').select('*'),
       db.from('profiles').select('id, full_name, email'),
     ])
     if (isMissingTable(p.error) || isMissingTable(a.error)) return setError('missing')

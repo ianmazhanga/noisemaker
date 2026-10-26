@@ -14,7 +14,7 @@ const key = import.meta.env.VITE_SUPABASE_KEY as string | undefined
 /** Null until the two environment variables are set. The dashboard then shows setup instructions. */
 export const supabase: SupabaseClient | null = url && key ? createClient(url, key) : null
 
-export type StaffRole = 'owner' | 'content_manager'
+export type StaffRole = 'owner' | 'editor' | 'content_manager' | 'viewer'
 export type StoryStatus = 'new' | 'under_review' | 'contacted' | 'approved' | 'declined'
 
 export interface Profile {
@@ -26,7 +26,7 @@ export interface Profile {
   created_at: string
 }
 
-export const ROLE_LABEL: Record<StaffRole, string> = { owner: 'Owner', content_manager: 'Content Manager' }
+export const ROLE_LABEL: Record<StaffRole, string> = { owner: 'Owner', editor: 'Editor', content_manager: 'Content Manager', viewer: 'Viewer' }
 
 export const STATUS_LABEL: Record<StoryStatus, string> = {
   new: 'New',

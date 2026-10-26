@@ -17,7 +17,30 @@ const AUDIT_TEXT: Record<string, (target: string, details: Record<string, unknow
   'story.deleted': (ref) => `${ref} was deleted`,
   'member.invited': () => 'A team member was invited',
   'member.access': () => 'A team member’s access was changed',
+  'post.approved': () => 'A social post was approved',
+  'post.published': () => 'A social post was published',
+  'post.rejected': () => 'A social post was rejected',
+  'article.approved': () => 'An article was approved',
+  'article.published': () => 'An article was published',
+  'newsletter.approved': () => 'A newsletter was approved',
+  'newsletter.sent': () => 'A newsletter was sent',
+  'clip.approved': () => 'A video clip was approved',
+  'clip.sent_to_social': () => 'A clip was sent to the Social Media Manager',
+  'settings.changed': () => 'Settings were changed',
+  'account.connected': (platform) => `${platform} was connected`,
+  'account.disconnected': (platform) => `${platform} was disconnected`,
+  'job.started': () => 'A video job was started',
 }
+
+/** Things waiting for someone, across every section. Each count is skipped if its table doesn't exist yet. */
+const WAITING = [
+  { table: 'news_articles', filter: ['status', 'pending_approval'], label: 'Articles awaiting approval', to: '/admin/news?status=pending_approval' },
+  { table: 'newsletter_campaigns', filter: ['status', 'pending_approval'], label: 'Newsletters awaiting approval', to: '/admin/newsletter' },
+  { table: 'video_projects', filter: ['status', 'awaiting_approval'], label: 'Videos awaiting approval', to: '/admin/video' },
+  { table: 'video_clips', filter: ['status', 'rendered'], label: 'Clips ready to review', to: '/admin/shorts' },
+  { table: 'social_posts', filter: ['status', 'failed'], label: 'Posts that failed to publish', to: '/admin/social?status=failed' },
+  { table: 'jobs', filter: ['status', 'failed'], label: 'Failed background jobs', to: '/admin/shorts' },
+] as const
 
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -26,6 +49,23 @@ export default function OverviewPage() {
   const [counts, setCounts] = useState<Record<StoryStatus | 'total', number> | null>(null)
   const [activity, setActivity] = useState<Activity[] | null>(null)
   const [error, setError] = useState('')
+  const [waiting, setWaiting] = useState<{ label: string; to: string; count: number }[] | null>(null)
+
+  useEffect(() => {
+    let live = true
+    const since = new Date(Date.now() - 7 * 86_400_000).toISOString()
+    void Promise.all(
+      WAITING.map(async (w) => {
+        let q = db.from(w.table).select('id', { count: 'exact', head: true }).eq(w.filter[0], w.filter[1])
+        if (w.table === 'jobs') q = q.gte('created_at', since)
+        const { count, error: e } = await q
+        return e ? null : { label: w.label as string, to: w.to as string, count: count ?? 0 }
+      }),
+    ).then((list) => live && setWaiting(list.filter((x): x is { label: string; to: string; count: number } => x !== null)))
+    return () => {
+      live = false
+    }
+  }, [db, pendingPosts])
 
   useEffect(() => {
     let live = true
@@ -148,12 +188,24 @@ export default function OverviewPage() {
         )}
       </section>
 
-      <section aria-labelledby="next-heading" className="mt-10 rounded-xl border border-dashed border-ink/20 p-5">
-        <h2 id="next-heading" className="font-semibold">
-          Not connected yet
-        </h2>
-        <p className="mt-1 text-muted">Video production, newsletters, news and analytics will appear here as each one is built and connected. Nothing on this page is sample data.</p>
-      </section>
+      {waiting && waiting.length > 0 && (
+        <section aria-labelledby="waiting-heading" className="mt-10">
+          <h2 id="waiting-heading" className="kicker text-muted">
+            Waiting for someone
+          </h2>
+          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
+            {waiting.map((w) => (
+              <Stat key={w.label} label={w.label} value={w.count} to={w.to} />
+            ))}
+          </div>
+        </section>
+      )}
+      {waiting && waiting.length === 0 && (
+        <section className="mt-10 rounded-xl border border-dashed border-ink/20 p-5">
+          <h2 className="font-semibold">Newsroom sections need a database update</h2>
+          <p className="mt-1 text-muted">Run supabase/migrations/20261028000000_newsroom.sql in Supabase to switch on video production, Shorts, news, newsletters, the calendar and analytics. Nothing on this page is sample data.</p>
+        </section>
+      )}
     </div>
   )
 }

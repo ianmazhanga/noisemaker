@@ -9,7 +9,7 @@ export interface PostRow {
   hashtags: string[]
   link_url: string
   media_note: string
-  source_type: 'manual' | 'youtube' | 'news'
+  source_type: 'manual' | 'youtube' | 'news' | 'clip' | 'article'
   source_ref: string
   source_title: string
   ai_generated: boolean
@@ -27,6 +27,11 @@ export interface PostRow {
   published_at: string | null
   published_url: string
   error_message: string
+  // Added by the newsroom migration; absent before it runs.
+  media_asset_id?: string | null
+  clip_id?: string | null
+  platform_post_id?: string
+  publish_started_at?: string | null
 }
 
 export interface AccountRow {
@@ -35,6 +40,11 @@ export interface AccountRow {
   profile_url: string
   provider: string
   connected_at: string | null
+  // Added by the newsroom migration; absent before it runs.
+  status?: 'not_connected' | 'connected' | 'expired' | 'error'
+  account_name?: string
+  expires_at?: string | null
+  last_error?: string
 }
 
 export interface ChannelVideo {

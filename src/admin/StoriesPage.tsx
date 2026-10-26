@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { RefreshCw, Search, Trash2 } from 'lucide-react'
 import { STATUS_LABEL, STATUSES, type StoryStatus } from '../lib/supabase'
 import { isCallRequest, matchesSearch, preferredContact, receivedWithin, safeWebLink, type ContactMethod } from '../lib/inbox'
@@ -20,7 +20,7 @@ const STATUS_STYLE: Record<StoryStatus, string> = {
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 
 export default function StoriesPage() {
-  const { db, canReadStories, newStories } = useAdmin()
+  const { db, session, canReadStories, newStories } = useAdmin()
   const [params, setParams] = useSearchParams()
   const [rows, setRows] = useState<StoryRow[] | null>(null)
   const [error, setError] = useState('')
@@ -28,6 +28,8 @@ export default function StoriesPage() {
   const [method, setMethod] = useState<ContactMethod | 'any'>('any')
   const [period, setPeriod] = useState<'any' | '7' | '30' | '90'>('any')
   const [kind, setKind] = useState<'all' | 'story' | 'call'>('all')
+  const [members, setMembers] = useState<{ id: string; full_name: string; email: string; role: string }[]>([])
+  const [mine, setMine] = useState(false)
 
   const status = (STATUSES as string[]).includes(params.get('status') ?? '') ? (params.get('status') as StoryStatus) : 'all'
   const openId = params.get('open')
@@ -51,6 +53,11 @@ export default function StoriesPage() {
     if (openId && rows) document.getElementById(`story-${openId}`)?.scrollIntoView({ block: 'start' })
   }, [openId, rows])
 
+  // Team list for assigning stories (available once the newsroom migration has run).
+  useEffect(() => {
+    void db.rpc('team_members').then(({ data }) => setMembers((data ?? []) as typeof members))
+  }, [db])
+
   if (!canReadStories) return <p className="text-muted">The owner hasn’t given your account access to story submissions.</p>
 
   const setParam = (key: string, value: string | null) =>
@@ -67,6 +74,7 @@ export default function StoriesPage() {
       (kind === 'all' || (kind === 'call') === isCallRequest(entry)) &&
       (method === 'any' || preferredContact(entry) === method) &&
       (period === 'any' || receivedWithin(entry, Number(period))) &&
+      (!mine || r.assigned_to === session.user.id) &&
       matchesSearch(entry, query)
     )
   })
@@ -104,6 +112,11 @@ export default function StoriesPage() {
         <Select label="Preferred contact" value={method} onChange={(v) => setMethod(v as typeof method)} options={{ any: 'Any contact method', whatsapp: 'Prefers WhatsApp', phone: 'Prefers phone', email: 'Prefers email' }} />
         <Select label="Received" value={period} onChange={(v) => setPeriod(v as typeof period)} options={{ any: 'Any time', 7: 'Last 7 days', 30: 'Last 30 days', 90: 'Last 90 days' }} />
       </div>
+      {members.length > 0 && (
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input type="checkbox" className="size-4 accent-blue" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Only stories assigned to me
+        </label>
+      )}
 
       {error && (
         <p role="alert" className="mt-6 rounded-lg bg-danger/10 px-4 py-3 text-danger">
@@ -120,7 +133,7 @@ export default function StoriesPage() {
         <ul className="mt-6 space-y-3">
           {shown.map((row) => (
             <li key={row.id} id={`story-${row.id}`} className="scroll-mt-24">
-              <Submission row={row} open={row.id === openId} onChange={(next) => replace(next, row.id)} />
+              <Submission row={row} members={members} open={row.id === openId} onChange={(next) => replace(next, row.id)} />
             </li>
           ))}
         </ul>
@@ -144,7 +157,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
   )
 }
 
-function Submission({ row, open, onChange }: { row: StoryRow; open: boolean; onChange: (row: StoryRow | null) => void }) {
+function Submission({ row, members, open, onChange }: { row: StoryRow; members: { id: string; full_name: string; email: string; role: string }[]; open: boolean; onChange: (row: StoryRow | null) => void }) {
   const { db, isOwner, toast, refreshCounts } = useAdmin()
   const entry = toEntry(row)
   const f = entry.fields
@@ -162,6 +175,15 @@ function Submission({ row, open, onChange }: { row: StoryRow; open: boolean; onC
     onChange(data as StoryRow)
     refreshCounts()
     toast(`Marked as ${STATUS_LABEL[status]}`)
+  }
+
+  async function assign(to: string) {
+    setSaving(true)
+    const { data, error } = await db.from('story_submissions').update({ assigned_to: to || null }).eq('id', row.id).select().single()
+    setSaving(false)
+    if (error) return toast(friendlyError(error), 'error')
+    onChange(data as StoryRow)
+    toast(to ? 'Assigned' : 'Unassigned')
   }
 
   async function remove() {
@@ -197,6 +219,26 @@ function Submission({ row, open, onChange }: { row: StoryRow; open: boolean; onC
           </select>
         </label>
         {row.status_changed_at && <span className="text-sm text-muted">changed {when(row.status_changed_at)}</span>}
+        {row.assigned_to !== undefined && members.length > 0 && (
+          <label className="flex items-center gap-2">
+            <span className="text-sm font-semibold">Assigned to</span>
+            <select className={`${inputClass} min-h-10 w-auto py-1`} value={row.assigned_to ?? ''} disabled={saving} onChange={(e) => void assign(e.target.value)}>
+              <option value="">Nobody</option>
+              {members.filter((m) => m.role !== 'viewer').map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.full_name || m.email}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {row.interview_project_id ? (
+          <Link to={`/admin/video?open=${row.interview_project_id}`} className="text-sm font-semibold text-blue-ink underline underline-offset-4">
+            Interview project
+          </Link>
+        ) : (
+          row.interview_project_id === null && row.status !== 'approved' && <span className="text-xs text-muted">Approving creates an interview project.</span>
+        )}
         {isOwner && (
           <span className="ml-auto flex items-center gap-2">
             {confirmDelete ? (
