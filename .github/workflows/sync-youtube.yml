@@ -1,7 +1,7 @@
 name: Sync YouTube videos
 
 # Checks the channel for new, changed or removed videos every hour and commits
-# src/data/youtube.json when something changed. Netlify then rebuilds the site.
+# src/data/youtube.json when something changed. Vercel then rebuilds the site.
 # GitHub may start scheduled runs a little late when it is busy.
 
 on:

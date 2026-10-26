@@ -1,6 +1,6 @@
 import { afterEach, test } from 'node:test'
 import assert from 'node:assert/strict'
-import handler from '../netlify/functions/admin-invite.ts'
+import { POST as handler } from '../api/admin/invite.ts'
 
 const realFetch = globalThis.fetch
 afterEach(() => {

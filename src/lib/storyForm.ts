@@ -1,15 +1,13 @@
 /**
  * "Tell your story" form: fields, validation and submission encoding.
  *
- * Submissions go to Netlify Forms. Netlify only accepts fields it found in the
- * hidden form in index.html at deploy time, so FIELD_NAMES and that form must
- * list the same names (tests/story-form.test.ts checks this).
+ * The page sends the answers to api/stories.ts, which checks them again with the same
+ * rules and saves them to the database. FIELD_NAMES are the database's column names.
  *
  * No imports, so tests can run this file directly in Node.
  */
 
-export const FORM_NAME = 'tell-your-story'
-/** Hidden field that people never see. Bots fill it in and Netlify discards those submissions. */
+/** Hidden field that people never see. Bots fill it in and the server discards those submissions. */
 export const HONEYPOT = 'bot-field'
 
 export type RequestType = 'story' | 'call'
@@ -234,7 +232,7 @@ const LABELS = {
   interviewFormat: { 'in-person': 'In person', remote: 'Remote (video call)', undecided: 'Not sure yet' },
 } as const
 
-/** Field names as they appear in the Netlify dashboard. Must match the hidden form in index.html. */
+/** Column names in the story_submissions table (supabase/migrations). */
 export const FIELD_NAMES = [
   'reference',
   'request_type',
@@ -253,7 +251,7 @@ export const FIELD_NAMES = [
   'consents',
 ] as const
 
-/** The Netlify Forms payload: one readable value per field. */
+/** What gets saved: one readable value per field. */
 export function toSubmission(form: StoryForm, reference: string): Record<(typeof FIELD_NAMES)[number], string> {
   const code = dialCodeOf(form)
   const phone = form.phone.trim() ? (toE164(code.startsWith('+') ? code : `+${code}`, form.phone) ?? `${code} ${form.phone}`.trim()) : ''
@@ -278,11 +276,6 @@ export function toSubmission(form: StoryForm, reference: string): Record<(typeof
     additional_info: ifStory(clean(form.additionalInfo)),
     consents: [form.consentPrivacy && 'privacy notice read', form.consentContact && 'agrees to be contacted', form.consentAge && '18 or over'].filter(Boolean).join('; '),
   }
-}
-
-/** URL-encoded body for a Netlify Forms POST. `honeypot` is whatever ended up in the hidden bot field. */
-export function encodeSubmission(fields: Record<string, string>, honeypot = ''): string {
-  return new URLSearchParams({ 'form-name': FORM_NAME, [HONEYPOT]: honeypot, ...fields }).toString()
 }
 
 /**

@@ -14,10 +14,8 @@ import {
   LIMITS,
   STORY_TOPICS,
   SUMMARY_MIN,
-  encodeSubmission,
   fingerprint,
   makeReference,
-  toSubmission,
   validate,
   type RequestType,
   type StoryForm,
@@ -108,21 +106,17 @@ export default function TellYourStoryPage() {
     const reference = makeReference()
     try {
       const honeypot = honeypotRef.current?.value ?? ''
-      const body = encodeSubmission(toSubmission(form, reference), honeypot)
       if (import.meta.env.DEV) {
-        // Netlify Forms only exists on the deployed site. Locally, pretend it worked so the flow can be tested.
+        // The /api functions only run on the deployed site. Locally, pretend it worked so the flow can be tested.
         await new Promise((r) => setTimeout(r, 600))
       } else {
-        const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
-        if (!res.ok) throw new Error(String(res.status))
-        // A copy for the owner dashboard's Story Inbox. Netlify Forms already has the story,
-        // so if this fails the person still sees it as sent.
-        await fetch('/api/stories', {
+        const res = await fetch('/api/stories', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ form, reference, honeypot }),
-          signal: AbortSignal.timeout(10_000),
-        }).catch(() => undefined)
+          signal: AbortSignal.timeout(20_000),
+        })
+        if (!res.ok) throw new Error(String(res.status))
       }
       rememberSent(print, reference)
       setSent({ reference, requestType: form.requestType, contactMethod: form.contactMethod })
@@ -456,7 +450,7 @@ export default function TellYourStoryPage() {
                 <div className="rounded-lg bg-bone p-5 text-[0.9375rem] text-muted md:p-6">
                   <h3 className="font-sans font-semibold text-ink">How we handle your details</h3>
                   <p className="mt-2">
-                    We use what you share only to consider your story and contact you about it. It is stored by our website host, Netlify, and seen only by the Noisemakers team. Nothing
+                    We use what you share only to consider your story and contact you about it. It is stored in our private team database and seen only by the Noisemakers team. Nothing
                     you send is published without your agreement, and it is never sold. You can ask us to delete your submission at any time.{' '}
                     <Link to="/privacy" className="font-semibold text-blue-ink underline underline-offset-4">
                       Read the privacy notice

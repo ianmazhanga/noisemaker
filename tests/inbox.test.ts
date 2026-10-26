@@ -1,34 +1,17 @@
-import { test, afterEach } from 'node:test'
+import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { defaultMessage, emailSubject, isCallRequest, mailtoLink, matchesSearch, passwordMatches, preferredContact, receivedWithin, safeWebLink, telLink, toEntry, whatsappLink } from '../src/lib/inbox.ts'
-import handler from '../netlify/functions/inbox.ts'
+import { FIELD_NAMES } from '../src/lib/storyForm.ts'
+import { defaultMessage, emailSubject, isCallRequest, mailtoLink, matchesSearch, preferredContact, receivedWithin, safeWebLink, telLink, whatsappLink, type InboxEntry } from '../src/lib/inbox.ts'
 
-const raw = (id: string, createdAt: string, data: Record<string, string>) => ({
+/** A submission as the Story Inbox sees it, with any unspecified field empty. */
+const makeEntry = (id: string, receivedAt: string, values: Partial<InboxEntry['fields']>): InboxEntry => ({
   id,
-  created_at: createdAt,
-  data: { ip: '203.0.113.9', user_agent: 'Mozilla/5.0', referrer: 'https://example.com', ...data },
-})
-
-test('entries keep only the form fields, never IP address or browser', () => {
-  const entry = toEntry(raw('a1', '2026-10-20T10:00:00Z', { full_name: 'Tendai Moyo', email: 't@example.com', reference: 'NM-261020-ABCD' }))
-  assert.ok(entry)
-  assert.equal(entry.fields.full_name, 'Tendai Moyo')
-  assert.equal(entry.fields.story_summary, '')
-  assert.ok(!JSON.stringify(entry).includes('203.0.113.9'))
-  assert.ok(!JSON.stringify(entry).includes('Mozilla'))
-  assert.equal(toEntry(null), null)
-  assert.equal(toEntry({ id: 1 }), null)
-})
-
-test('password check', async () => {
-  assert.equal(await passwordMatches('correct horse battery', 'correct horse battery'), true)
-  assert.equal(await passwordMatches('correct horse batterz', 'correct horse battery'), false)
-  assert.equal(await passwordMatches('', 'correct horse battery'), false)
-  assert.equal(await passwordMatches(undefined, 'correct horse battery'), false)
+  receivedAt,
+  fields: { ...(Object.fromEntries(FIELD_NAMES.map((n) => [n, ''])) as InboxEntry['fields']), ...values },
 })
 
 test('search, call-request filter and safe links', () => {
-  const entry = toEntry(raw('a1', '2026-10-20T10:00:00Z', { full_name: 'Tendai Moyo', request_type: 'Request an introductory call (pending: not booked until the team confirms)' }))!
+  const entry = makeEntry('a1', '2026-10-20T10:00:00Z', { full_name: 'Tendai Moyo', request_type: 'Request an introductory call (pending: not booked until the team confirms)' })
   assert.equal(isCallRequest(entry), true)
   assert.equal(matchesSearch(entry, 'tendai'), true)
   assert.equal(matchesSearch(entry, 'nobody'), false)
@@ -38,65 +21,8 @@ test('search, call-request filter and safe links', () => {
   assert.equal(safeWebLink('https://instagram.com/x'), 'https://instagram.com/x')
 })
 
-// The function, against a fake Netlify API.
-const realFetch = globalThis.fetch
-afterEach(() => {
-  globalThis.fetch = realFetch
-  delete process.env.INBOX_PASSWORD
-  delete process.env.NETLIFY_API_TOKEN
-})
-
-const PASSWORD = 'a long inbox password'
-const context = { site: { id: 'site-123' } }
-const post = (body: unknown) => new Request('https://example.com/api/inbox', { method: 'POST', body: JSON.stringify(body) })
-
-function fakeNetlify(seen: string[]) {
-  globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
-    seen.push(String(url))
-    assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer secret-token')
-    if (String(url).endsWith('/sites/site-123/forms')) return Response.json([{ id: 'other', name: 'newsletter' }, { id: 'form-1', name: 'tell-your-story' }])
-    if (String(url).includes('/forms/form-1/submissions')) {
-      return Response.json([raw('old', '2026-10-01T09:00:00Z', { full_name: 'Older' }), raw('new', '2026-10-19T09:00:00Z', { full_name: 'Newer' })])
-    }
-    return new Response('not found', { status: 404 })
-  }) as typeof fetch
-}
-
-test('the function refuses to run without a strong password and a token', async () => {
-  process.env.INBOX_PASSWORD = 'short'
-  process.env.NETLIFY_API_TOKEN = 'secret-token'
-  const res = await handler(post({ password: 'short' }), context)
-  assert.equal(res.status, 503)
-})
-
-test('a wrong password gets nothing and never reaches Netlify', async () => {
-  process.env.INBOX_PASSWORD = PASSWORD
-  process.env.NETLIFY_API_TOKEN = 'secret-token'
-  const seen: string[] = []
-  fakeNetlify(seen)
-  const res = await handler(post({ password: 'guess' }), context)
-  assert.equal(res.status, 401)
-  assert.deepEqual(seen, [])
-  assert.equal((await handler(new Request('https://example.com/api/inbox'), context)).status, 405)
-})
-
-test('the right password returns the story submissions, newest first, without the token', async () => {
-  process.env.INBOX_PASSWORD = PASSWORD
-  process.env.NETLIFY_API_TOKEN = 'secret-token'
-  const seen: string[] = []
-  fakeNetlify(seen)
-  const res = await handler(post({ password: PASSWORD }), context)
-  assert.equal(res.status, 200)
-  const text = await res.text()
-  assert.ok(!text.includes('secret-token'))
-  const body = JSON.parse(text)
-  assert.equal(body.formFound, true)
-  assert.deepEqual(body.entries.map((e: { id: string }) => e.id), ['new', 'old'])
-  assert.ok(seen.every((u) => u.startsWith('https://api.netlify.com/api/v1/')))
-})
-
 test('contact links follow the chosen method and carry the edited message', () => {
-  const entry = toEntry(raw('a1', '2026-10-20T10:00:00Z', { full_name: 'Tendai Moyo', reference: 'NM-261020-ABCD', preferred_contact: 'WhatsApp', phone: '+263771234567', email: 't@example.com' }))!
+  const entry = makeEntry('a1', '2026-10-20T10:00:00Z', { full_name: 'Tendai Moyo', reference: 'NM-261020-ABCD', preferred_contact: 'WhatsApp', phone: '+263771234567', email: 't@example.com' })
   assert.equal(preferredContact(entry), 'whatsapp')
   assert.equal(preferredContact({ ...entry, fields: { ...entry.fields, preferred_contact: 'Phone call' } }), 'phone')
   assert.equal(preferredContact({ ...entry, fields: { ...entry.fields, preferred_contact: '' } }), null)

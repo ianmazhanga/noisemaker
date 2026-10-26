@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { EMPTY_FORM, FIELD_NAMES, FORM_NAME, HONEYPOT, encodeSubmission, fingerprint, makeReference, toE164, toSubmission, validate, type StoryForm } from '../src/lib/storyForm.ts'
+import { EMPTY_FORM, FIELD_NAMES, fingerprint, makeReference, toE164, toSubmission, validate, type StoryForm } from '../src/lib/storyForm.ts'
 
 const valid: StoryForm = {
   ...EMPTY_FORM,
@@ -89,7 +89,7 @@ test('the same story gets the same fingerprint, so repeats can be caught', () =>
   assert.notEqual(fingerprint(valid), fingerprint({ ...valid, storyTitle: 'Another story' }))
 })
 
-test('the submission is readable, says a call is pending, and includes the honeypot', () => {
+test('the submission is readable, says a call is pending, and has exactly the database columns', () => {
   const story = toSubmission(valid, 'NM-261016-ABCD')
   assert.equal(story.topics, 'Family & parenting, Life in the diaspora')
   assert.doesNotMatch(story.request_type, /pending/)
@@ -102,26 +102,14 @@ test('the submission is readable, says a call is pending, and includes the honey
   // Story answers typed before switching to a call request are not sent.
   assert.equal(fields.story_summary, '')
   assert.equal(fields.topics, '')
-  const body = new URLSearchParams(encodeSubmission(fields, 'spam'))
-  assert.equal(body.get('form-name'), FORM_NAME)
-  assert.equal(body.get(HONEYPOT), 'spam')
-  assert.equal(body.get('reference'), 'NM-261016-ABCD')
+  assert.equal(fields.reference, 'NM-261016-ABCD')
+  assert.deepEqual(Object.keys(fields).sort(), [...FIELD_NAMES].sort())
 })
 
-test('the hidden Netlify form in index.html has exactly the fields the page sends', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
-  const form = html.match(new RegExp(`<form name="${FORM_NAME}"[^>]*>([\\s\\S]*?)</form>`))
-  assert.ok(form, 'hidden form is missing from index.html')
-  assert.match(form[0], /data-netlify="true"/)
-  assert.match(form[0], new RegExp(`netlify-honeypot="${HONEYPOT}"`))
-  const names = [...form[1].matchAll(/name="([^"]+)"/g)].map((m) => m[1]).sort()
-  assert.deepEqual(names, [HONEYPOT, ...FIELD_NAMES].sort())
-})
-
-test('applicant details only go to Netlify Forms and the Story Inbox function', () => {
+test('applicant details only go to the Story Inbox function', () => {
   // The page must not log, put details in URLs or send them to other services.
   const page = readFileSync(new URL('../src/pages/TellYourStoryPage.tsx', import.meta.url), 'utf8')
   assert.doesNotMatch(page, /console\./)
   assert.doesNotMatch(page, /localStorage/)
-  assert.deepEqual([...page.matchAll(/fetch\(([^,]+),/g)].map((m) => m[1]), ["'/'", "'/api/stories'"])
+  assert.deepEqual([...page.matchAll(/fetch\(([^,]+),/g)].map((m) => m[1]), ["'/api/stories'"])
 })

@@ -30,29 +30,6 @@
       Noisemakers needs JavaScript to show episodes. You can watch every episode on YouTube:
       <a href="https://www.youtube.com/@noisemakersnews">youtube.com/@noisemakersnews</a>
     </noscript>
-    <!--
-      Netlify Forms reads this hidden form at deploy time to learn the fields of the
-      "Tell your story" form, which React renders at /tell-your-story. Keep the names
-      in sync with FIELD_NAMES in src/lib/storyForm.ts (npm test checks this).
-    -->
-    <form name="tell-your-story" data-netlify="true" netlify-honeypot="bot-field" hidden>
-      <input name="bot-field" />
-      <input name="reference" />
-      <input name="request_type" />
-      <input name="full_name" />
-      <input name="email" />
-      <input name="phone" />
-      <input name="preferred_contact" />
-      <input name="profile_link" />
-      <input name="story_title" />
-      <textarea name="story_summary"></textarea>
-      <textarea name="why_share"></textarea>
-      <input name="topics" />
-      <input name="interview_format" />
-      <textarea name="availability"></textarea>
-      <textarea name="additional_info"></textarea>
-      <input name="consents" />
-    </form>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

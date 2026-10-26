@@ -2,7 +2,7 @@
 
 The website for **Noisemakers**, a video podcast of inspirational interviews and stories about marriage, parenting, family and recovery. Episodes are published on YouTube as [Noisemakers News Network (@noisemakersnews)](https://www.youtube.com/@noisemakersnews).
 
-React 19 · TypeScript · Vite · Tailwind CSS 4 · React Router 7 · Framer Motion (dialogs only) · Lucide icons. Fonts are self-hosted with Fontsource (Archivo, Inter, Source Serif 4). Hosted on **Netlify**. There is no database and no server code of our own.
+React 19 · TypeScript · Vite · Tailwind CSS 4 · React Router 7 · Framer Motion (dialogs only) · Lucide icons. Fonts are self-hosted with Fontsource (Archivo, Inter, Source Serif 4). Hosted on **Vercel**, with a **Supabase** database for story submissions and the owner dashboard. The only server code is the two small functions in `api/`.
 
 ```bash
 npm install
@@ -33,20 +33,20 @@ Old URLs redirect: `/videos` and `/latest` go to `/episodes`; `/contact` and `/c
 
 ## Setup checklist (one-off)
 
-1. **Netlify:** connect the site (below). Until then, the old GitHub Pages site stays up exactly as it was last published, and the form won't work.
-2. **YouTube API key:** add it to GitHub (below) so new videos appear automatically.
-3. **Story alerts:** choose how the owner is told about new submissions (below).
-4. **Domain:** `SITE.url` in `src/config/site.ts` and the Open Graph URLs in `index.html` assume `https://noisemakersnews.com`. Point that domain at Netlify, or change both to the real address.
-5. **Turn off GitHub Pages** once Netlify is live: GitHub repo → Settings → Pages → unpublish.
+1. **Vercel:** connect the site (below).
+2. **Supabase and the owner dashboard:** follow [docs/admin-setup.md](docs/admin-setup.md). Story submissions are saved there, so the form needs it.
+3. **YouTube API key:** add it to GitHub (below) so new videos appear automatically.
+4. **Domain:** `SITE.url` in `src/config/site.ts` and the Open Graph URLs in `index.html` assume `https://noisemakersnews.com`. Point that domain at Vercel, or change both to the real address.
+5. **Turn off the old copies** once Vercel is live: GitHub Pages (repo → Settings → Pages → unpublish) and the Netlify site.
 
-### Connecting Netlify
+### Connecting Vercel
 
-1. Sign up at [netlify.com](https://www.netlify.com) (the free plan is enough to start) with the GitHub account that owns this repo.
-2. **Add new site → Import an existing project → GitHub →** choose `noisemaker`. Netlify reads `netlify.toml`, so leave the build settings as they are.
-3. When it's deployed, go to **Site configuration → Forms** and make sure **form detection is enabled**. Then trigger one more deploy (**Deploys → Trigger deploy**) so Netlify finds the "tell-your-story" form.
-4. To use your own domain: **Domain management → Add a domain**, and follow Netlify's DNS instructions.
+1. Sign up at [vercel.com](https://vercel.com) (the free Hobby plan is enough to start) with the GitHub account that owns this repo.
+2. **Add New → Project → Import** `noisemaker`. Vercel reads `vercel.json`, so leave the build settings as they are.
+3. Before the first deploy, add the four environment variables from [docs/admin-setup.md](docs/admin-setup.md#5-connect-the-website-vercel).
+4. To use your own domain: **Project → Settings → Domains**, and follow Vercel's DNS instructions.
 
-`netlify.toml` runs `npm test` before every build, so a deploy with broken data fails instead of going live. It also sets the security headers (a Content Security Policy that only allows YouTube's image and video domains, no framing, HSTS).
+`vercel.json` runs `npm test` before every build, so a deploy with broken data fails instead of going live. It also sets the security headers (a Content Security Policy that only allows YouTube's images and the Supabase project, no framing, HSTS). The server functions live in `api/`.
 
 ---
 
@@ -58,7 +58,7 @@ New uploads appear on the site automatically. Nobody needs to edit anything.
 
 1. Every hour, the GitHub Action **Sync YouTube videos** (`.github/workflows/sync-youtube.yml`) asks the YouTube Data API v3 for every public video on channel `UCD49Bigk35BXat_YPimii0Q`.
 2. It updates `src/data/youtube.json` and runs the tests.
-3. If anything changed, it commits the file. Netlify sees the commit and republishes the site.
+3. If anything changed, it commits the file. Vercel sees the commit and republishes the site.
 
 **Expect a new upload on the site within about 1–2 hours** of publishing it. GitHub sometimes starts scheduled jobs late, so it isn't instant. To update straight away: GitHub → **Actions → Sync YouTube videos → Run workflow**.
 
@@ -92,47 +92,34 @@ The key lives only in GitHub's encrypted secrets. It's never in the code or the 
 
 ## Owner dashboard
 
-`/admin` is the private owner dashboard: a separate sign-in for each person (Owner or Content Manager), and the **Story Inbox** with statuses, private notes, contact buttons, a live "new stories" counter and notifications. It runs on Supabase (`supabase/migrations/`) plus two Netlify Functions: `netlify/functions/stories.ts` saves each story, and `admin-invite.ts` sends invitations.
+`/admin` is the private owner dashboard: a separate sign-in for each person (Owner or Content Manager), and the **Story Inbox** with statuses, private notes, contact buttons, a live "new stories" counter and notifications. It runs on Supabase (`supabase/migrations/`) plus two Vercel Functions: `api/stories.ts` saves each story, and `api/admin/invite.ts` sends invitations.
 
-**Setup and day-to-day use: [docs/admin-setup.md](docs/admin-setup.md).** Until it's set up, `/admin` says so and nothing else changes.
+**Setup and day-to-day use: [docs/admin-setup.md](docs/admin-setup.md).**
 
 ---
 
 ## Story submissions
 
-`/tell-your-story` lets people either **submit their story** or **request an introductory call**. There's no database, no login and no automatic emails to applicants.
+`/tell-your-story` lets people either **submit their story** or **request an introductory call**. Nothing is emailed to applicants.
 
 **What happens:**
 
 1. The visitor fills in the form. It checks every field before sending: name, email, phone with country code (required if they choose phone or WhatsApp), story, topics, preferred format, consent, and confirmation that they're 18 or over.
-2. The page sends the answers to **Netlify Forms** and shows a confirmation with a reference number such as `NM-261016-K3QX`.
+2. The page sends the answers to `api/stories.ts`, which checks them again with the same rules and saves them in Supabase. The visitor sees a confirmation with a reference number such as `NM-261016-K3QX`.
 3. A call request is marked **"pending: not booked until the team confirms"**. The site never books a call or claims one is confirmed.
-4. The owner reads the submission at `/inbox` (or in Netlify) and contacts the person the way they chose. Each submission in `/inbox` has **Contact on WhatsApp**, **Call now** and **Send email** buttons, the person's preferred one first and marked, plus a ready-made message the owner edits before sending. Nothing is sent automatically.
+4. The story appears in the **Story Inbox** at `/admin/stories` straight away, with a live "new" counter and a notification. Each submission has **Contact on WhatsApp**, **Call now** and **Send email** buttons, the person's preferred one first and marked, plus a ready-made message the team edits before sending. Nothing is sent automatically.
 
-**Reading submissions:** Netlify → your site → **Forms → tell-your-story**. Every field is listed under its name (`full_name`, `story_summary`, `reference`…). From there you can also **download a CSV** or **delete** a submission. You can do this from a phone browser too.
+**Spam and repeats:** a hidden "honeypot" field catches simple bots. The same story from the same email within 24 hours is saved only once. If more than 20 submissions arrive within ten minutes, further ones are turned away for a while, since that's almost certainly a bot.
 
-**Getting alerts:** Netlify → **Site configuration → Notifications → Emails and webhooks → Form submission notifications**. The options are:
-
-- **Email notification:** Netlify emails the owner when a story arrives. This goes to the owner only, never to the applicant.
-- **Slack:** gives phone push notifications through the Slack app.
-- Or skip alerts and check the Forms page regularly.
-
-**Spam:** a hidden "honeypot" field catches simple bots, and Netlify filters spam automatically. Netlify marks suspected spam rather than deleting it, so check **Forms → Spam submissions** now and then.
+**Alerts:** new stories show up in the dashboard (counter and notification bell). Email alerts aren't set up yet; they need an email service (see [docs/admin-setup.md](docs/admin-setup.md)).
 
 **Privacy and retention:**
 
-- The privacy page promises that submissions not taken forward are deleted within **12 months**. Delete old submissions in Netlify at least that often. If you want a different period, change `RETENTION` in `src/pages/PrivacyPage.tsx`.
+- The privacy page promises that submissions not taken forward are deleted within **12 months**. Delete them from the Story Inbox (owners only). If you want a different period, change `RETENTION` in `src/pages/PrivacyPage.tsx`.
 - If someone asks for their submission to be deleted, find it by their reference number and delete it.
-- Downloaded CSVs contain personal details. Store them somewhere private, and delete them when you're done.
-- The page never logs answers, puts them in URLs or sends them anywhere except Netlify (a test checks this).
+- The page never logs answers, puts them in URLs or sends them anywhere except the site's own `/api/stories` (a test checks this).
 
-**Limits:**
-
-- Netlify's free plan caps form submissions per month. Check your plan's current limit under **Forms**.
-- Duplicate protection only works in the visitor's browser: the button locks while sending, and the same story can't be re-sent from the same tab without confirming.
-- Netlify Forms has no statuses or notes. To track progress, keep your own notes, for example in a spreadsheet of reference numbers.
-
-**Changing the form:** fields live in `src/lib/storyForm.ts`. Netlify only stores fields it knows about, so if you add or rename one, update the hidden form near the bottom of `index.html` to match. `npm test` fails if they differ.
+**Changing the form:** fields live in `src/lib/storyForm.ts`. Each one is also a column in `story_submissions` (`supabase/migrations/`). To add a field, add a new migration with the column as well.
 
 ---
 

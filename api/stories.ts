@@ -1,20 +1,24 @@
 /**
  * POST /api/stories  { "form": StoryForm, "reference": "NM-…", "honeypot": "" }
  *
- * Saves a "Tell your story" submission to the dashboard's database (Supabase), for the
- * Story Inbox at /admin/stories. The page also sends every submission to Netlify Forms
- * first, so nothing is lost if this function or Supabase is unavailable.
+ * Saves a "Tell your story" submission to the database (Supabase), where the Story Inbox
+ * at /admin/stories reads it. This is the only place submissions are stored.
  *
- * Set two environment variables in Netlify (Site configuration → Environment variables):
+ * Vercel environment variables (Project → Settings → Environment Variables):
  *   SUPABASE_URL         https://<project>.supabase.co
  *   SUPABASE_SECRET_KEY  the project's secret (or legacy service_role) key. Never put it in a VITE_ variable.
- * Without them the function answers 503 and the page carries on as before.
+ * Without them the function answers 503 and the form tells the person to try again later.
  */
-import { fingerprint, parseStoryForm, REFERENCE_PATTERN, toSubmission, validate } from '../../src/lib/storyForm.ts'
+import { fingerprint, parseStoryForm, REFERENCE_PATTERN, toSubmission, validate } from '../src/lib/storyForm.ts'
 
 const MAX_BODY = 32_000
 /** The same story from the same email within this window is treated as a repeat, not a new submission. */
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000
+/**
+ * Flood guard: more submissions than this in ten minutes, from anyone, is almost certainly
+ * a bot, so further ones are turned away until things calm down.
+ */
+const MAX_PER_TEN_MINUTES = 20
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
@@ -27,9 +31,7 @@ function rest(url: string, key: string) {
     fetch(`${url.replace(/\/+$/, '')}/rest/v1/${path}`, { ...init, headers: { ...headers, ...(init.headers as Record<string, string>) }, signal: AbortSignal.timeout(8000) })
 }
 
-export default async (req: Request) => {
-  if (req.method !== 'POST') return json({ error: 'method-not-allowed' }, 405)
-
+export async function POST(req: Request): Promise<Response> {
   const url = process.env.SUPABASE_URL ?? ''
   const key = process.env.SUPABASE_SECRET_KEY ?? ''
   if (!url.startsWith('https://') || !key) return json({ error: 'not-configured' }, 503)
@@ -57,7 +59,12 @@ export default async (req: Request) => {
     const recent = await api(`story_submissions?select=reference&fingerprint=eq.${encodeURIComponent(print)}&received_at=gte.${encodeURIComponent(since)}&limit=1`)
     if (!recent.ok) throw new Error(`Supabase ${recent.status} checking for repeats`)
     const [existing] = (await recent.json()) as { reference: string }[]
-    if (existing) return json({ ok: true, duplicate: true })
+    if (existing) return json({ ok: true, duplicate: true, reference: existing.reference })
+
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    const busy = await api(`story_submissions?select=id&received_at=gte.${encodeURIComponent(tenMinutesAgo)}`, { method: 'HEAD', headers: { Prefer: 'count=exact' } })
+    const count = Number(busy.headers.get('content-range')?.split('/')[1] ?? 0)
+    if (count >= MAX_PER_TEN_MINUTES) return json({ error: 'busy' }, 429)
 
     const res = await api('story_submissions', {
       method: 'POST',
@@ -66,16 +73,10 @@ export default async (req: Request) => {
     })
     // 409: this reference is already saved, e.g. the browser retried.
     if (!res.ok && res.status !== 409) throw new Error(`Supabase ${res.status} saving a submission`)
-    return json({ ok: true })
+    return json({ ok: true, reference })
   } catch (error) {
     // Never log the submission itself: it holds personal details.
     console.error(error instanceof Error ? error.message : 'Saving the submission failed')
     return json({ error: 'unavailable' }, 502)
   }
-}
-
-export const config = {
-  path: '/api/stories',
-  // Per visitor IP: a person sends one story; this leaves room for retries.
-  rateLimit: { windowLimit: 5, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 }
