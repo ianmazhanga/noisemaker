@@ -17,10 +17,16 @@ export const SITE = {
     handle: '@noisemakersnews',
   },
   /**
-   * Social profiles. The YouTube channel doesn't link any, so these are empty.
-   * Add a URL here and it appears in the footer and community section.
+   * Social profiles, shown as logos beside YouTube's in the footer, the
+   * homepage community section, the About page and the mobile menu. The
+   * YouTube channel doesn't link any, so these are empty. Paste a profile URL
+   * in and its logo appears; an empty one stays hidden.
    */
-  social: [] as { label: string; href: string }[],
+  social: {
+    instagram: '',
+    x: '',
+    tiktok: '',
+  },
   /** Contact address. Leave empty until there's a real inbox. The Collaborate page adapts. */
   contactEmail: '',
 }
@@ -60,6 +66,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { label: 'Home', to: '/' },
   { label: 'Episodes', to: '/episodes' },
   { label: 'Clips', to: '/clips' },
+  { label: 'Books', to: '/books' },
   { label: 'About', to: '/about' },
   { label: 'Tell your story', to: '/tell-your-story' },
 ]

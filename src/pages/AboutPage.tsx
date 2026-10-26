@@ -5,6 +5,7 @@ import { PageIntro } from '../components/ui/PageIntro'
 import { Thumb } from '../components/ui/Thumb'
 import { ExternalButton } from '../components/ui/Button'
 import { YouTubeIcon } from '../components/ui/BrandIcons'
+import { SocialLinks } from '../components/ui/SocialLinks'
 import { SITE } from '../config/site'
 import { countByTopic, getEpisodesByGuest, getGuests, getTopics, guestCredits } from '../lib/content'
 import { breadcrumbLd, seriesLd } from '../lib/structuredData'
@@ -65,6 +66,8 @@ export default function AboutPage() {
                 Visit the channel
               </ExternalButton>
             </div>
+            <p className="kicker mt-8 text-muted-dark">Follow us</p>
+            <SocialLinks className="mt-4" />
           </div>
         </aside>
       </section>

@@ -1,6 +1,5 @@
 import { Suspense, useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
-import { PlayerProvider } from '../player/PlayerContext'
 import { Header } from './Header'
 import { Footer } from './Footer'
 
@@ -30,17 +29,15 @@ export function PageFallback() {
 
 export function Layout() {
   return (
-    <PlayerProvider>
-      <div className="flex min-h-screen flex-col">
-        <ScrollToTop />
-        <Header />
-        <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
-          <Suspense fallback={<PageFallback />}>
-            <Outlet />
-          </Suspense>
-        </main>
-        <Footer />
-      </div>
-    </PlayerProvider>
+    <div className="flex min-h-screen flex-col">
+      <ScrollToTop />
+      <Header />
+      <main id="main" tabIndex={-1} className="flex-1 focus:outline-none">
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
+      </main>
+      <Footer />
+    </div>
   )
 }

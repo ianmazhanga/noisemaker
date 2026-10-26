@@ -284,3 +284,36 @@ export function toSubmission(form: StoryForm, reference: string): Record<(typeof
 export function encodeSubmission(fields: Record<string, string>, honeypot = ''): string {
   return new URLSearchParams({ 'form-name': FORM_NAME, [HONEYPOT]: honeypot, ...fields }).toString()
 }
+
+/**
+ * Rebuilds a StoryForm from untrusted JSON, for the server. Unknown keys are dropped
+ * and wrongly typed values become empty, so validate() then rejects them.
+ */
+export function parseStoryForm(input: unknown): StoryForm | null {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return null
+  const raw = input as Record<string, unknown>
+  const text = (key: keyof StoryForm) => (typeof raw[key] === 'string' ? (raw[key] as string).slice(0, 5000) : '')
+  const pick = <T extends string>(key: keyof StoryForm, allowed: readonly T[]): T | '' => (allowed.includes(raw[key] as T) ? (raw[key] as T) : '')
+  return {
+    requestType: pick('requestType', ['story', 'call'] as const) || 'story',
+    fullName: text('fullName'),
+    email: text('email'),
+    phoneCountry: text('phoneCountry'),
+    phoneCustomCode: text('phoneCustomCode'),
+    phone: text('phone'),
+    contactMethod: pick('contactMethod', ['email', 'phone', 'whatsapp'] as const),
+    profileUrl: text('profileUrl'),
+    storyTitle: text('storyTitle'),
+    storySummary: text('storySummary'),
+    whyShare: text('whyShare'),
+    topics: Array.isArray(raw.topics) ? [...new Set(raw.topics.filter((t): t is string => STORY_TOPICS.includes(t as string)))] : [],
+    interviewFormat: pick('interviewFormat', ['in-person', 'remote', 'undecided'] as const),
+    availability: text('availability'),
+    additionalInfo: text('additionalInfo'),
+    consentPrivacy: raw.consentPrivacy === true,
+    consentContact: raw.consentContact === true,
+    consentAge: raw.consentAge === true,
+  }
+}
+
+export const REFERENCE_PATTERN = /^NM-\d{6}-[A-Z2-9]{4}$/

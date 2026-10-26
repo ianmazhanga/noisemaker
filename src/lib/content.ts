@@ -6,6 +6,7 @@
  * refreshed hourly by a GitHub Action) merged with the hand-written details in
  * src/data/episodes.ts and clips.ts. See src/lib/catalog.ts.
  */
+import { BOOKS } from '../data/books'
 import { CLIPS } from '../data/clips'
 import { EPISODES } from '../data/episodes'
 import { GUESTS } from '../data/guests'
@@ -13,7 +14,7 @@ import { TOPICS } from '../data/topics'
 import snapshot from '../data/youtube.json'
 import { HOMEPAGE } from '../config/site'
 import { buildCatalog } from './catalog'
-import type { Clip, Episode, Guest, Topic, TopicSlug, YouTubeSnapshot } from '../types/content'
+import type { Book, Clip, Episode, Guest, Topic, TopicSlug, YouTubeSnapshot } from '../types/content'
 
 /** Newest first. */
 const { episodes, clips } = buildCatalog(snapshot as YouTubeSnapshot, EPISODES, CLIPS)
@@ -97,3 +98,5 @@ export function searchEpisodes(query: string, list: Episode[] = episodes): Episo
     return terms.every((t) => haystack.includes(t))
   })
 }
+
+export const getBooks = (): Book[] => BOOKS

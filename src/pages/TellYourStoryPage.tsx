@@ -107,13 +107,22 @@ export default function TellYourStoryPage() {
     setStatus({ kind: 'sending' })
     const reference = makeReference()
     try {
-      const body = encodeSubmission(toSubmission(form, reference), honeypotRef.current?.value ?? '')
+      const honeypot = honeypotRef.current?.value ?? ''
+      const body = encodeSubmission(toSubmission(form, reference), honeypot)
       if (import.meta.env.DEV) {
         // Netlify Forms only exists on the deployed site. Locally, pretend it worked so the flow can be tested.
         await new Promise((r) => setTimeout(r, 600))
       } else {
         const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
         if (!res.ok) throw new Error(String(res.status))
+        // A copy for the owner dashboard's Story Inbox. Netlify Forms already has the story,
+        // so if this fails the person still sees it as sent.
+        await fetch('/api/stories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ form, reference, honeypot }),
+          signal: AbortSignal.timeout(10_000),
+        }).catch(() => undefined)
       }
       rememberSent(print, reference)
       setSent({ reference, requestType: form.requestType, contactMethod: form.contactMethod })
@@ -588,7 +597,7 @@ function Confirmation({ reference, requestType, contactMethod }: { reference: st
             Watch the episodes
           </Link>
           <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('outline', 'lg', 'w-full sm:w-auto')}>
-            <YouTubeIcon className="size-5 text-[#ff0033]" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
+            <YouTubeIcon className="size-5" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
           </a>
         </div>
       </div>

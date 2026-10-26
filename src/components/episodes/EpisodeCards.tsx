@@ -1,8 +1,8 @@
 import { Link } from 'react-router'
 import type { Episode } from '../../types/content'
 import { getGuestsFor, getTopic } from '../../lib/content'
+import { youtubeWatchUrl } from '../../lib/youtube'
 import { formatDate, formatDuration, formatRuntime, spokenDuration } from '../../lib/format'
-import { usePlayer } from '../player/PlayerContext'
 import { PlayIcon } from '../player/PlayIcon'
 import { Thumb } from '../ui/Thumb'
 
@@ -37,16 +37,15 @@ interface CardProps {
 
 /** Large card: wide 16:9 image, display title and summary. */
 export function EpisodeFeatureCard({ episode, as: H = 'h3', priority }: CardProps) {
-  const { playEpisode } = usePlayer()
   const guests = guestLine(episode)
   return (
     <article className="group">
-      <button type="button" onClick={() => playEpisode(episode)} className="relative block w-full overflow-hidden rounded-lg" aria-label={`Play episode: ${episode.title}`}>
+      <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className="relative block w-full overflow-hidden rounded-lg" aria-label={`Watch on YouTube: ${episode.title} (opens in a new tab)`}>
         <Thumb youtubeId={episode.youtubeId} hd={episode.hd} alt="" priority={priority} sizes="(min-width: 1024px) 760px, 100vw" className="aspect-video" />
         <span className="absolute bottom-4 left-4 md:bottom-6 md:left-6">
           <PlayIcon size="lg" />
         </span>
-      </button>
+      </a>
       <div className="mt-5 md:mt-6">
         <TopicLabel episode={episode} />
         <H className="display-md mt-3">
@@ -66,17 +65,16 @@ export function EpisodeFeatureCard({ episode, as: H = 'h3', priority }: CardProp
 
 /** Tall 4:5 crop centred on the guest. */
 export function EpisodePortraitCard({ episode, as: H = 'h3' }: CardProps) {
-  const { playEpisode } = usePlayer()
   const guests = guestLine(episode)
   return (
     <article className="group">
-      <button type="button" onClick={() => playEpisode(episode)} className="relative block w-full overflow-hidden rounded-lg" aria-label={`Play episode: ${episode.title}`}>
+      <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className="relative block w-full overflow-hidden rounded-lg" aria-label={`Watch on YouTube: ${episode.title} (opens in a new tab)`}>
         <Thumb youtubeId={episode.youtubeId} hd={episode.hd} focus={episode.focus} alt="" sizes="(min-width: 1024px) 300px, 62vw" className="aspect-[3/4]" />
         <span className="absolute bottom-3 left-3">
           <PlayIcon size="md" />
         </span>
         <Duration seconds={episode.durationSeconds} className="absolute top-3 right-3" />
-      </button>
+      </a>
       <div className="mt-4">
         <TopicLabel episode={episode} />
         <H className="title mt-2 text-lg md:text-xl">
@@ -92,16 +90,15 @@ export function EpisodePortraitCard({ episode, as: H = 'h3' }: CardProps) {
 
 /** Compact list row: small thumbnail beside the title. */
 export function EpisodeRow({ episode, as: H = 'h3' }: CardProps) {
-  const { playEpisode } = usePlayer()
   const guests = guestLine(episode)
   return (
     <article className="group grid grid-cols-[8.5rem_1fr] items-start gap-4 sm:grid-cols-[11rem_1fr] sm:gap-5">
-      <button type="button" onClick={() => playEpisode(episode)} className="relative block w-full overflow-hidden rounded-md" aria-label={`Play episode: ${episode.title}`}>
+      <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className="relative block w-full overflow-hidden rounded-md" aria-label={`Watch on YouTube: ${episode.title} (opens in a new tab)`}>
         <Thumb youtubeId={episode.youtubeId} hd={episode.hd} alt="" sizes="176px" className="aspect-video" />
         <span className="absolute bottom-2 left-2">
           <PlayIcon size="sm" />
         </span>
-      </button>
+      </a>
       <div className="min-w-0">
         <p className="text-xs font-medium text-muted">
           <time dateTime={episode.publishedAt}>{formatDate(episode.publishedAt)}</time>
@@ -122,16 +119,15 @@ export function EpisodeRow({ episode, as: H = 'h3' }: CardProps) {
 
 /** Standard card for listings. */
 export function EpisodeGridCard({ episode, as: H = 'h3', priority }: CardProps) {
-  const { playEpisode } = usePlayer()
   const guests = guestLine(episode)
   return (
     <article className="group flex flex-col">
-      <button type="button" onClick={() => playEpisode(episode)} className="relative block w-full overflow-hidden rounded-lg" aria-label={`Play episode: ${episode.title}`}>
+      <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className="relative block w-full overflow-hidden rounded-lg" aria-label={`Watch on YouTube: ${episode.title} (opens in a new tab)`}>
         <Thumb youtubeId={episode.youtubeId} hd={episode.hd} alt="" priority={priority} sizes="(min-width: 1024px) 440px, (min-width: 640px) 50vw, 100vw" className="aspect-video" />
         <span className="absolute bottom-3 left-3">
           <PlayIcon size="sm" />
         </span>
-      </button>
+      </a>
       <div className="mt-4">
         <TopicLabel episode={episode} />
         <H className="title mt-2 text-xl">

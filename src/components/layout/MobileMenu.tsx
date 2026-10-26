@@ -4,11 +4,12 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { PRIMARY_NAV, SITE } from '../../config/site'
 import { getLeadEpisode } from '../../lib/content'
+import { youtubeWatchUrl } from '../../lib/youtube'
 import { useDialog } from '../../hooks/useDialog'
 import { Logo } from '../brand/Logo'
 import { YouTubeIcon } from '../ui/BrandIcons'
 import { buttonClass } from '../ui/buttonClass'
-import { usePlayer } from '../player/PlayerContext'
+import { SocialLinks } from '../ui/SocialLinks'
 
 interface MobileMenuProps {
   open: boolean
@@ -18,7 +19,6 @@ interface MobileMenuProps {
 export function MobileMenu({ open, onClose }: MobileMenuProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
-  const { playEpisode } = usePlayer()
   const lead = getLeadEpisode()
   useDialog(panelRef, open, onClose, closeRef)
 
@@ -83,20 +83,14 @@ export function MobileMenu({ open, onClose }: MobileMenuProps) {
 
           <div className="wrap mt-auto flex flex-col gap-3 pt-10 pb-8">
             {lead && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose()
-                  playEpisode(lead)
-                }}
-                className={buttonClass('dark', 'lg', 'w-full')}
-              >
-                Watch the latest episode
-              </button>
+              <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" onClick={onClose} className={buttonClass('dark', 'lg', 'w-full')}>
+                Watch the latest episode<span className="sr-only"> on YouTube (opens in a new tab)</span>
+              </a>
             )}
             <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'lg', 'w-full')}>
               <YouTubeIcon className="size-5" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
             </a>
+            <SocialLinks className="mt-3 justify-center" />
           </div>
         </motion.div>
       )}

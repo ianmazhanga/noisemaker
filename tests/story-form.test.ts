@@ -118,10 +118,10 @@ test('the hidden Netlify form in index.html has exactly the fields the page send
   assert.deepEqual(names, [HONEYPOT, ...FIELD_NAMES].sort())
 })
 
-test('applicant details never go anywhere except the form submission', () => {
+test('applicant details only go to Netlify Forms and the Story Inbox function', () => {
   // The page must not log, put details in URLs or send them to other services.
   const page = readFileSync(new URL('../src/pages/TellYourStoryPage.tsx', import.meta.url), 'utf8')
   assert.doesNotMatch(page, /console\./)
   assert.doesNotMatch(page, /localStorage/)
-  assert.deepEqual([...page.matchAll(/fetch\(([^,]+),/g)].map((m) => m[1]), ["'/'"])
+  assert.deepEqual([...page.matchAll(/fetch\(([^,]+),/g)].map((m) => m[1]), ["'/'", "'/api/stories'"])
 })

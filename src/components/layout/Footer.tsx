@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { PRIMARY_NAV, SITE } from '../../config/site'
 import { getTopics } from '../../lib/content'
 import { Logo } from '../brand/Logo'
+import { SocialLinks } from '../ui/SocialLinks'
 
 const YEAR = new Date().getFullYear()
 const heading = 'kicker text-muted-dark'
@@ -30,6 +31,8 @@ export function Footer() {
             Inspirational interviews and stories about marriage, parenting, family and recovery.{' '}
             <span className="accent text-paper">Not all noise is bad noise.</span>
           </p>
+          <p className={`${heading} mt-8`}>Follow us</p>
+          <SocialLinks className="mt-4" />
         </div>
 
         <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:col-span-7">
@@ -69,11 +72,6 @@ export function Footer() {
               <li>
                 <External href={SITE.youtube.shortsUrl}>Shorts</External>
               </li>
-              {SITE.social.map((s) => (
-                <li key={s.href}>
-                  <External href={s.href}>{s.label}</External>
-                </li>
-              ))}
               {SITE.contactEmail && (
                 <li>
                   <a href={`mailto:${SITE.contactEmail}`} className={link}>

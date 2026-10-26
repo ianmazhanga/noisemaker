@@ -2,9 +2,9 @@ import { Link } from 'react-router'
 import { Mic, Play } from 'lucide-react'
 import { HOMEPAGE, SITE } from '../../config/site'
 import { getClips, getEpisode, getLeadEpisode } from '../../lib/content'
+import { youtubeShortUrl, youtubeWatchUrl } from '../../lib/youtube'
 import { formatDuration, formatRuntime } from '../../lib/format'
 import type { Clip, Episode } from '../../types/content'
-import { usePlayer } from '../player/PlayerContext'
 import { PlayIcon } from '../player/PlayIcon'
 import { YouTubeIcon } from '../ui/BrandIcons'
 import { Thumb } from '../ui/Thumb'
@@ -15,9 +15,8 @@ function TileLabel({ children }: { children: string }) {
 }
 
 function EpisodeTile({ episode, className, portrait, priority }: { episode: Episode; className: string; portrait?: boolean; priority?: boolean }) {
-  const { playEpisode } = usePlayer()
   return (
-    <button type="button" onClick={() => playEpisode(episode)} className={`group absolute block overflow-hidden rounded-lg ${className}`} aria-label={`Play episode: ${episode.title}`}>
+    <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className={`group absolute block overflow-hidden rounded-lg ${className}`} aria-label={`Watch on YouTube: ${episode.title} (opens in a new tab)`}>
       <Thumb
         youtubeId={episode.youtubeId}
         hd={episode.hd}
@@ -31,25 +30,23 @@ function EpisodeTile({ episode, className, portrait, priority }: { episode: Epis
       <span className={`absolute ${portrait ? 'right-3 bottom-[18%]' : 'bottom-3 left-3'}`}>
         <PlayIcon size="sm" />
       </span>
-    </button>
+    </a>
   )
 }
 
 function ClipTile({ clip, className }: { clip: Clip; className: string }) {
-  const { playClip } = usePlayer()
   return (
-    <button type="button" onClick={() => playClip(clip)} className={`group absolute block overflow-hidden rounded-lg ${className}`} aria-label={`Play clip: ${clip.title}`}>
+    <a href={youtubeShortUrl(clip.youtubeId)} target="_blank" rel="noopener noreferrer" className={`group absolute block overflow-hidden rounded-lg ${className}`} aria-label={`Watch on YouTube: ${clip.title} (opens in a new tab)`}>
       <Thumb youtubeId={clip.youtubeId} vertical alt="" sizes="200px" className="absolute inset-0" priority />
       <TileLabel>{`Clip · ${formatDuration(clip.durationSeconds)}`}</TileLabel>
       <span className="absolute bottom-3 left-3">
         <PlayIcon size="sm" />
       </span>
-    </button>
+    </a>
   )
 }
 
 export function Hero() {
-  const { playEpisode } = usePlayer()
   const lead = getLeadEpisode()
   const portrait = getEpisode(HOMEPAGE.heroCollage.portraitEpisode)
   const landscape = getEpisode(HOMEPAGE.heroCollage.landscapeEpisode)
@@ -73,9 +70,9 @@ export function Hero() {
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap md:mt-10">
             {lead ? (
-              <button type="button" onClick={() => playEpisode(lead)} className={buttonClass('primary', 'lg', 'w-full sm:w-auto')}>
-                <Play className="size-4 fill-current" aria-hidden /> Watch the latest episode
-              </button>
+              <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'lg', 'w-full sm:w-auto')}>
+                <Play className="size-4 fill-current" aria-hidden /> Watch the latest episode<span className="sr-only"> on YouTube (opens in a new tab)</span>
+              </a>
             ) : (
               <a href={SITE.youtube.channelUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'lg', 'w-full sm:w-auto')}>
                 <YouTubeIcon className="size-5" /> Watch on YouTube<span className="sr-only"> (opens in a new tab)</span>
@@ -101,7 +98,7 @@ export function Hero() {
               <dt className="kicker text-muted">Never miss an episode</dt>
               <dd className="mt-1.5">
                 <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 font-semibold">
-                  <YouTubeIcon className="size-4 text-blue" />
+                  <YouTubeIcon className="size-4" />
                   <span className="link-grow">Subscribe on YouTube, {SITE.youtube.handle}</span>
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
