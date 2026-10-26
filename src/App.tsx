@@ -1,4 +1,4 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
 import { MotionConfig } from 'framer-motion'
 import { Layout } from './components/layout/Layout'
@@ -9,13 +9,45 @@ import HomePage from './pages/HomePage'
 const EpisodesPage = lazy(() => import('./pages/EpisodesPage'))
 const EpisodePage = lazy(() => import('./pages/EpisodePage'))
 const ClipsPage = lazy(() => import('./pages/ClipsPage'))
+const BooksPage = lazy(() => import('./pages/BooksPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const TellYourStoryPage = lazy(() => import('./pages/TellYourStoryPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const InboxPage = lazy(() => import('./pages/InboxPage'))
+// Owner dashboard: its own layout, loaded only when someone opens /admin.
+const AdminApp = lazy(() => import('./admin/AdminApp'))
+const AdminOverview = lazy(() => import('./admin/OverviewPage'))
+const AdminStories = lazy(() => import('./admin/StoriesPage'))
+const AdminNotifications = lazy(() => import('./admin/NotificationsPage'))
+const AdminSettings = lazy(() => import('./admin/SettingsPage'))
+const AdminResetPassword = lazy(() => import('./admin/ResetPasswordPage'))
 
 const router = createBrowserRouter([
+  {
+    path: 'admin',
+    element: (
+      <Suspense fallback={null}>
+        <AdminApp />
+      </Suspense>
+    ),
+    errorElement: <RouteError />,
+    children: [
+      { index: true, element: <AdminOverview /> },
+      { path: 'stories', element: <AdminStories /> },
+      { path: 'notifications', element: <AdminNotifications /> },
+      { path: 'settings', element: <AdminSettings /> },
+      { path: '*', element: <Navigate to="/admin" replace /> },
+    ],
+  },
+  {
+    path: 'admin/reset',
+    element: (
+      <Suspense fallback={null}>
+        <AdminResetPassword />
+      </Suspense>
+    ),
+  },
   {
     element: <Layout />,
     errorElement: <RouteError />,
@@ -24,6 +56,7 @@ const router = createBrowserRouter([
       { path: 'episodes', element: <EpisodesPage /> },
       { path: 'episodes/:slug', element: <EpisodePage /> },
       { path: 'clips', element: <ClipsPage /> },
+      { path: 'books', element: <BooksPage /> },
       { path: 'about', element: <AboutPage /> },
       { path: 'tell-your-story', element: <TellYourStoryPage /> },
       { path: 'privacy', element: <PrivacyPage /> },

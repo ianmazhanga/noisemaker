@@ -1,10 +1,6 @@
 export const youtubeWatchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`
 export const youtubeShortUrl = (id: string) => `https://www.youtube.com/shorts/${id}`
 
-/** Privacy-enhanced embed. Autoplays because it only loads after an explicit click. */
-export const youtubeEmbedUrl = (id: string) =>
-  `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`
-
 const base = (id: string) => `https://i.ytimg.com/vi/${id}`
 
 /**

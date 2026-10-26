@@ -3,15 +3,14 @@ import { Lock, RefreshCw, Search } from 'lucide-react'
 import { Seo } from '../components/seo/Seo'
 import { PageIntro } from '../components/ui/PageIntro'
 import { buttonClass } from '../components/ui/buttonClass'
-import { isCallRequest, matchesSearch, safeWebLink, whatsappLink, type InboxEntry, type InboxResponse } from '../lib/inbox'
+import { isCallRequest, matchesSearch, preferredContact, receivedWithin, safeWebLink, type ContactMethod, type InboxEntry, type InboxResponse } from '../lib/inbox'
+import { ContactPanel } from '../components/inbox/ContactPanel'
+import { METHOD_LABEL, inputClass as input } from '../components/inbox/shared'
 
 /**
  * Private inbox for "Tell your story" submissions. Not linked anywhere on the site.
  * The password stays in memory only: reloading or closing the tab locks the inbox again.
  */
-
-const input =
-  'w-full rounded-lg border-[1.5px] border-ink/20 bg-white px-4 text-base text-ink placeholder:text-muted/70 transition-colors hover:border-ink/40 focus:border-ink focus:outline-none focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-blue'
 
 const ERRORS: Record<string, string> = {
   'wrong-password': 'That password isn’t right. Please try again.',
@@ -21,6 +20,7 @@ const ERRORS: Record<string, string> = {
 }
 
 type Filter = 'all' | 'story' | 'call'
+type Period = 'any' | '7' | '30' | '90'
 type State = { kind: 'locked' } | { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'open'; data: InboxResponse; loadedAt: Date }
 
 async function fetchInbox(password: string): Promise<InboxResponse> {
@@ -47,6 +47,8 @@ export default function InboxPage() {
   const [state, setState] = useState<State>({ kind: 'locked' })
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [method, setMethod] = useState<ContactMethod | 'any'>('any')
+  const [period, setPeriod] = useState<Period>('any')
 
   async function load(pw: string) {
     setState({ kind: 'loading' })
@@ -65,11 +67,19 @@ export default function InboxPage() {
     password.current = ''
     setQuery('')
     setFilter('all')
+    setMethod('any')
+    setPeriod('any')
     setState({ kind: 'locked' })
   }
 
   const entries = state.kind === 'open' ? state.data.entries : []
-  const shown = entries.filter((e) => (filter === 'all' || (filter === 'call') === isCallRequest(e)) && matchesSearch(e, query))
+  const shown = entries.filter(
+    (e) =>
+      (filter === 'all' || (filter === 'call') === isCallRequest(e)) &&
+      (method === 'any' || preferredContact(e) === method) &&
+      (period === 'any' || receivedWithin(e, Number(period))) &&
+      matchesSearch(e, query),
+  )
   const calls = entries.filter(isCallRequest).length
 
   return (
@@ -138,6 +148,26 @@ export default function InboxPage() {
                     <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted" aria-hidden />
                     <input type="search" className={`${input} min-h-11 pl-10`} placeholder="Search name, email, reference, story…" value={query} onChange={(e) => setQuery(e.target.value)} />
                   </label>
+                  <label>
+                    <span className="sr-only">Preferred contact</span>
+                    <select className={`${input} min-h-11 sm:w-auto`} value={method} onChange={(e) => setMethod(e.target.value as ContactMethod | 'any')}>
+                      <option value="any">Any contact method</option>
+                      {(Object.keys(METHOD_LABEL) as ContactMethod[]).map((m) => (
+                        <option key={m} value={m}>
+                          Prefers {METHOD_LABEL[m]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span className="sr-only">Received</span>
+                    <select className={`${input} min-h-11 sm:w-auto`} value={period} onChange={(e) => setPeriod(e.target.value as Period)}>
+                      <option value="any">Any time</option>
+                      <option value="7">Last 7 days</option>
+                      <option value="30">Last 30 days</option>
+                      <option value="90">Last 90 days</option>
+                    </select>
+                  </label>
                   <div role="group" aria-label="Show" className="flex gap-2">
                     {(['all', 'story', 'call'] as const).map((f) => (
                       <button key={f} type="button" aria-pressed={filter === f} className={buttonClass(filter === f ? 'dark' : 'outline', 'sm')} onClick={() => setFilter(f)}>
@@ -147,7 +177,7 @@ export default function InboxPage() {
                   </div>
                 </div>
                 {shown.length === 0 ? (
-                  <p className="mt-8 text-muted">Nothing matches that search.</p>
+                  <p className="mt-8 text-muted">Nothing matches these filters.</p>
                 ) : (
                   <ul className="mt-6 space-y-3">
                     {shown.map((entry) => (
@@ -170,7 +200,7 @@ function Submission({ entry }: { entry: InboxEntry }) {
   const f = entry.fields
   const call = isCallRequest(entry)
   const link = 'font-semibold text-blue-ink underline underline-offset-4'
-  const whatsapp = whatsappLink(f.phone)
+  const preferred = preferredContact(entry)
   const profile = safeWebLink(f.profile_link)
   return (
     <details className="group rounded-xl border border-line bg-white open:border-ink/30">
@@ -178,20 +208,17 @@ function Submission({ entry }: { entry: InboxEntry }) {
         <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${call ? 'bg-yellow text-ink' : 'bg-blue text-white'}`}>{call ? 'Call request' : 'Story'}</span>
         <span className="font-semibold text-ink">{f.full_name || 'No name'}</span>
         {f.story_title && <span className="min-w-0 flex-1 truncate text-muted">“{f.story_title}”</span>}
-        <span className="ml-auto text-sm text-muted">{formatDate(entry.receivedAt)}</span>
+        <span className="ml-auto flex items-center gap-3 text-sm text-muted">
+          {preferred && <span className="rounded-full bg-bone px-2.5 py-0.5 text-xs font-semibold text-ink">Prefers {METHOD_LABEL[preferred]}</span>}
+          {formatDate(entry.receivedAt)}
+        </span>
       </summary>
+      <ContactPanel entry={entry} preferred={preferred} />
       <dl className="grid gap-x-6 gap-y-4 border-t border-line p-4 md:grid-cols-[12rem_1fr] md:p-5">
         <Row label="Reference"><span className="font-mono">{f.reference}</span></Row>
         <Row label="Request">{f.request_type}</Row>
-        <Row label="Email">{f.email && <a className={link} href={`mailto:${f.email}?subject=${encodeURIComponent(`Your Noisemakers story (${f.reference})`)}`}>{f.email}</a>}</Row>
-        <Row label="Phone">
-          {f.phone && (
-            <span className="flex flex-wrap gap-x-4">
-              <a className={link} href={`tel:${f.phone.replace(/\s/g, '')}`}>{f.phone}</a>
-              {whatsapp && <a className={link} href={whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>}
-            </span>
-          )}
-        </Row>
+        <Row label="Email">{f.email}</Row>
+        <Row label="Phone">{f.phone}</Row>
         <Row label="Preferred contact">{f.preferred_contact}</Row>
         <Row label="Profile">{profile ? <a className={`${link} break-all`} href={profile} target="_blank" rel="noopener noreferrer">{f.profile_link}</a> : f.profile_link}</Row>
         <Row label={call ? 'Topic' : 'Story title'}>{f.story_title}</Row>

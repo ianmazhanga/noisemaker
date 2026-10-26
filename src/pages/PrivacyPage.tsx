@@ -39,8 +39,9 @@ export default function PrivacyPage() {
             without your agreement, and it is never sold or used for marketing.
           </p>
           <p>
-            <strong className="text-ink">Where it’s stored:</strong> with our website host, Netlify, using its Netlify Forms service. Netlify may check submissions with an
-            automated spam filter. Only the Noisemakers team can see submissions, in Netlify or on a password-protected page of this site.
+            <strong className="text-ink">Where it’s stored:</strong> with our website host, Netlify, using its Netlify Forms service, and in our private team database at
+            Supabase, which runs our story inbox. Netlify may check submissions with an automated spam filter. Only the Noisemakers team can see submissions: in Netlify, on a
+            password-protected page of this site, or in our team dashboard, where each person has their own sign-in and the owner decides who may read stories.
           </p>
           <p>
             <strong className="text-ink">How long:</strong> we delete submissions we aren’t taking forward within {RETENTION}. If your story becomes part of a conversation,
@@ -70,14 +71,11 @@ export default function PrivacyPage() {
             Episode and clip images load from YouTube’s image servers (i.ytimg.com). As with any image on the web, your browser sends YouTube a standard request, which includes your IP address.
           </p>
 
-          <h2 className={h2}>Video players</h2>
-          <p>
-            No YouTube player loads until you press play. Players use YouTube’s privacy-enhanced mode (youtube-nocookie.com). Once a video plays, YouTube’s own privacy policy applies to that
-            player.
-          </p>
+          <h2 className={h2}>Videos</h2>
+          <p>This site doesn’t load any YouTube player. Pressing play on a video opens it on YouTube in a new tab.</p>
 
           <h2 className={h2}>Links to YouTube</h2>
-          <p>Buttons such as “Watch on YouTube” and “Subscribe” take you to YouTube, where Google’s privacy policy applies.</p>
+          <p>Videos and buttons such as “Watch on YouTube” and “Subscribe” take you to YouTube, where Google’s privacy policy applies.</p>
           <p>
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className={link}>
               Google privacy policy<span className="sr-only"> (opens in a new tab)</span>

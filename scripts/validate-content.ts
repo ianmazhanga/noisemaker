@@ -9,6 +9,7 @@
 import { readFileSync } from 'node:fs'
 import type { YouTubeSnapshot } from '../src/types/content.ts'
 import { EPISODES } from '../src/data/episodes.ts'
+import { BOOKS } from '../src/data/books.ts'
 import { CLIPS } from '../src/data/clips.ts'
 import { GUESTS } from '../src/data/guests.ts'
 import { TOPICS } from '../src/data/topics.ts'
@@ -124,10 +125,17 @@ if (snapshot.videos.length) {
   }
 }
 
-const ROUTES = ['/', '/episodes', '/clips', '/about', '/tell-your-story', '/privacy']
+for (const b of BOOKS) {
+  const where = `Book "${b.slug}"`
+  expect(GUESTS.some((g) => g.id === b.guestId), `${where}: unknown guest "${b.guestId}"`)
+  for (const slug of b.episodeSlugs) expect(episodeSlugs.has(slug), `${where}: unknown episode "${slug}"`)
+  expect(!b.buyUrl || b.buyUrl.startsWith('https://'), `${where}: buyUrl must be an https URL`)
+}
+
+const ROUTES = ['/', '/episodes', '/clips', '/books', '/about', '/tell-your-story', '/privacy']
 for (const item of PRIMARY_NAV) expect(ROUTES.includes(item.to), `Navigation item "${item.label}" points to an unknown route "${item.to}"`)
 expect(SITE.url.startsWith('https://') && !SITE.url.endsWith('/'), 'SITE.url must be an https origin without a trailing slash')
-for (const s of SITE.social) expect(s.href.startsWith('https://') && s.label.trim(), `Social link "${s.label}" must have a label and an https URL`)
+for (const [network, href] of Object.entries(SITE.social)) expect(!href || href.startsWith('https://'), `SITE.social.${network} must be empty or an https URL`)
 expect(!SITE.contactEmail || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(SITE.contactEmail), 'SITE.contactEmail is not a valid address')
 
 for (const w of warnings) console.warn(`  ! ${w}`)

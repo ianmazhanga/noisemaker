@@ -32,7 +32,7 @@ export function Header() {
       <header
         className={`sticky top-0 z-50 border-b border-line bg-bone transition-shadow duration-200 ${scrolled ? 'shadow-[0_6px_20px_-12px_rgb(11_11_12_/_0.25)]' : ''}`}
       >
-        <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6">
+        <div className="wrap flex h-[var(--header-h)] items-center justify-between gap-3 sm:gap-6 lg:gap-4 xl:gap-6">
           <Link to="/" className="-m-1 rounded-md p-1" aria-label={`${SITE.name}, home`}>
             <Logo lockup />
           </Link>
@@ -45,7 +45,7 @@ export function Header() {
                     to={item.to}
                     end={item.to === '/'}
                     className={({ isActive }) =>
-                      `relative inline-flex min-h-11 items-center px-3.5 text-[0.9375rem] font-medium transition-colors ${
+                      `relative inline-flex min-h-11 items-center px-2 text-[0.9375rem] whitespace-nowrap xl:px-3.5 font-medium transition-colors ${
                         isActive ? 'text-ink after:absolute after:bottom-1.5 after:left-1/2 after:size-1.5 after:-translate-x-1/2 after:rounded-full after:bg-blue' : 'text-muted hover:text-ink'
                       }`
                     }

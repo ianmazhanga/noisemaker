@@ -110,3 +110,20 @@ export interface YouTubeSnapshot {
   channelId: string
   videos: SyncedVideo[]
 }
+
+/** A book by a guest, only where the channel itself names it. */
+export interface Book {
+  slug: string
+  title: string
+  subtitle?: string
+  /** As the channel credits them. */
+  authors: string
+  /** Guest ID from src/data/guests.ts */
+  guestId: string
+  /** One or two factual sentences restating the channel's own description. */
+  description: string
+  /** Where the channel links to buy it. Omitted when the channel gives no link. */
+  buyUrl?: string
+  /** The episodes where the book is discussed or mentioned. */
+  episodeSlugs: string[]
+}

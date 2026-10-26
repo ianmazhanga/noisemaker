@@ -2,8 +2,8 @@ import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
 import type { Clip } from '../../types/content'
 import { getGuestsFor } from '../../lib/content'
+import { youtubeShortUrl } from '../../lib/youtube'
 import { formatDuration, spokenDuration } from '../../lib/format'
-import { usePlayer } from '../player/PlayerContext'
 import { PlayIcon } from '../player/PlayIcon'
 import { Thumb } from '../ui/Thumb'
 
@@ -15,11 +15,10 @@ interface ClipCardProps {
 
 /** Vertical 9:16 card for a YouTube Short. */
 export function ClipCard({ clip, dark, as: H = 'h3' }: ClipCardProps) {
-  const { playClip } = usePlayer()
   const guests = getGuestsFor(clip.guestIds)
   return (
     <article className="group">
-      <button type="button" onClick={() => playClip(clip)} className="relative block w-full overflow-hidden rounded-lg" aria-label={`Play clip: ${clip.title}`}>
+      <a href={youtubeShortUrl(clip.youtubeId)} target="_blank" rel="noopener noreferrer" className="relative block w-full overflow-hidden rounded-lg" aria-label={`Watch on YouTube: ${clip.title} (opens in a new tab)`}>
         <Thumb youtubeId={clip.youtubeId} vertical alt="" sizes="240px" className="aspect-[9/16]" />
         <span className="absolute bottom-3 left-3">
           <PlayIcon size="md" />
@@ -28,7 +27,7 @@ export function ClipCard({ clip, dark, as: H = 'h3' }: ClipCardProps) {
           <span aria-hidden>{formatDuration(clip.durationSeconds)}</span>
           <span className="sr-only">Duration {spokenDuration(clip.durationSeconds)}</span>
         </span>
-      </button>
+      </a>
       <H className="title mt-3 text-base md:text-[1.0625rem]">{clip.title}</H>
       {guests.length > 0 && <p className={`mt-1 text-sm ${dark ? 'text-muted-dark' : 'text-muted'}`}>{guests.map((g) => g.name).join(', ')}</p>}
       {clip.episodeSlug && (

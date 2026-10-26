@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router'
 import { ArrowRight, Info } from 'lucide-react'
 import { Seo } from '../components/seo/Seo'
-import { LiteYouTube } from '../components/player/LiteYouTube'
+import { YouTubeLink } from '../components/player/YouTubeLink'
 import { EpisodeGridCard, TopicLabel } from '../components/episodes/EpisodeCards'
 import { ClipCard } from '../components/clips/ClipCard'
 import { YouTubeIcon } from '../components/ui/BrandIcons'
@@ -83,7 +83,7 @@ export default function EpisodePage() {
 
         <div className="wrap mt-8 md:mt-10">
           <div className="max-w-[1100px]">
-            <LiteYouTube key={episode.slug} youtubeId={episode.youtubeId} title={episode.title} hd={episode.hd} restricted={episode.restricted} priority className="rounded-lg" />
+            <YouTubeLink key={episode.slug} youtubeId={episode.youtubeId} title={episode.title} hd={episode.hd} priority className="rounded-lg" />
             <div className="mt-5 flex flex-wrap items-center gap-3">
               <a href={youtubeWatchUrl(episode.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('primary', 'md')}>
                 <YouTubeIcon className="size-4" /> Watch on YouTube<span className="sr-only"> (opens in a new tab)</span>

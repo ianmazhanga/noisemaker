@@ -1,44 +1,10 @@
-/**
- * The channel's mark, redrawn as a crisp SVG: a white network globe on the
- * channel's blue tile.
- */
-const RIM: [number, number][] = [
-  [16, 6.5],
-  [23.4, 9.8],
-  [25.4, 17.2],
-  [21.6, 24.4],
-  [13.4, 25.3],
-  [7.3, 20.4],
-  [7, 12.4],
-]
-const INNER: [number, number][] = [
-  [14.4, 12.6],
-  [20.2, 14.8],
-  [15.6, 19.8],
-  [10.8, 16.6],
-]
-const EDGES: [number, number][] = [
-  [0, 7], [6, 7], [7, 8], [1, 8], [2, 8], [8, 9], [3, 9], [4, 9], [9, 10], [10, 7], [5, 10], [6, 10], [9, 2],
-]
+import markSrc from '../../assets/brand/logo-mark.png'
 
+/** The channel's mark: the white network globe, on the logo's blue tile unless `tile` is false. */
 export function LogoMark({ className = '', tile = true }: { className?: string; tile?: boolean }) {
-  const points = [...RIM, ...INNER]
-  return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden="true" focusable="false">
-      {tile && <rect width="32" height="32" rx="7" fill="#1a62f2" />}
-      <g stroke="#fff" strokeWidth="1.05" fill="none" strokeLinecap="round">
-        <circle cx="16" cy="16" r="9.6" />
-        {EDGES.map(([a, b]) => (
-          <line key={`${a}-${b}`} x1={points[a][0]} y1={points[a][1]} x2={points[b][0]} y2={points[b][1]} />
-        ))}
-      </g>
-      <g fill="#fff">
-        {points.map(([x, y], i) => (
-          <circle key={i} cx={x} cy={y} r={i === 8 || i === 0 ? 1.75 : 1.3} />
-        ))}
-      </g>
-    </svg>
-  )
+  const img = <img src={markSrc} alt="" aria-hidden="true" draggable={false} className={tile ? 'size-[74%]' : className} />
+  if (!tile) return img
+  return <span className={`inline-flex items-center justify-center rounded-[22%] bg-[#0d72ff] ${className}`}>{img}</span>
 }
 
 interface LogoProps {

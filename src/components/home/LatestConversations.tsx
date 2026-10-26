@@ -2,8 +2,8 @@ import { Link } from 'react-router'
 import { ArrowRight, Play } from 'lucide-react'
 import { SITE } from '../../config/site'
 import { getEpisodes, getGuestsFor, getLatestEpisodes, getLeadEpisode } from '../../lib/content'
+import { youtubeWatchUrl } from '../../lib/youtube'
 import { formatLongDate, formatRuntime } from '../../lib/format'
-import { usePlayer } from '../player/PlayerContext'
 import { PlayIcon } from '../player/PlayIcon'
 import { EpisodeRow, TopicLabel } from '../episodes/EpisodeCards'
 import { Thumb } from '../ui/Thumb'
@@ -13,7 +13,6 @@ import { YouTubeIcon } from '../ui/BrandIcons'
 
 /** Editorial feed: the lead episode large, the next few as a list beside it. */
 export function LatestConversations() {
-  const { playEpisode } = usePlayer()
   const lead = getLeadEpisode()
   if (!lead) return <NoEpisodes />
   const more = getLatestEpisodes(4, [lead.slug])
@@ -26,12 +25,12 @@ export function LatestConversations() {
         <SectionHeading id="latest-title" index="02" kicker="Fresh from the studio" title="Latest conversations" />
         <div className="grid gap-12 lg:grid-cols-12 lg:gap-10">
           <article className="group lg:col-span-7">
-            <button type="button" onClick={() => playEpisode(lead)} className="relative block w-full overflow-hidden rounded-lg" aria-label={`Play episode: ${lead.title}`}>
+            <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" className="relative block w-full overflow-hidden rounded-lg" aria-label={`Watch on YouTube: ${lead.title} (opens in a new tab)`}>
               <Thumb youtubeId={lead.youtubeId} hd={lead.hd} alt="" sizes="(min-width: 1024px) 800px, 100vw" className="aspect-video" />
               <span className="absolute bottom-4 left-4 md:bottom-6 md:left-6">
                 <PlayIcon size="lg" />
               </span>
-            </button>
+            </a>
             <div className="mt-6">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <TopicLabel episode={lead} />
@@ -47,9 +46,9 @@ export function LatestConversations() {
               {guests.length > 0 && <p className="mt-3 font-semibold">With {guests.map((g) => g.name).join(' and ')}</p>}
               <p className="measure mt-2 text-lg text-muted">{lead.summary}</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <button type="button" onClick={() => playEpisode(lead)} className={buttonClass('dark', 'md')}>
-                  <Play className="size-4 fill-current" aria-hidden /> Play episode
-                </button>
+                <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('dark', 'md')}>
+                  <Play className="size-4 fill-current" aria-hidden /> Play episode<span className="sr-only"> on YouTube (opens in a new tab)</span>
+                </a>
                 <Link to={`/episodes/${lead.slug}`} className={buttonClass('outline', 'md')}>
                   Episode details
                 </Link>

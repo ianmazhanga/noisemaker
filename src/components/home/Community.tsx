@@ -5,6 +5,7 @@ import { getLeadEpisode } from '../../lib/content'
 import { youtubeWatchUrl } from '../../lib/youtube'
 import { LogoMark } from '../brand/Logo'
 import { YouTubeIcon } from '../ui/BrandIcons'
+import { SocialLinks } from '../ui/SocialLinks'
 import { buttonClass } from '../ui/buttonClass'
 
 /** Full-width invitation to subscribe and join the conversation in the comments. */
@@ -23,7 +24,7 @@ export function Community() {
         </p>
         <div className="mt-10 flex flex-col gap-3 sm:flex-row">
           <a href={SITE.youtube.subscribeUrl} target="_blank" rel="noopener noreferrer" className={buttonClass('light', 'lg', 'w-full sm:w-auto')}>
-            <YouTubeIcon className="size-5 text-[#ff0033]" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
+            <YouTubeIcon className="size-5" /> Subscribe on YouTube<span className="sr-only"> (opens in a new tab)</span>
           </a>
           {lead && (
             <a href={youtubeWatchUrl(lead.youtubeId)} target="_blank" rel="noopener noreferrer" className={buttonClass('outline-light', 'lg', 'w-full sm:w-auto')}>
@@ -39,17 +40,8 @@ export function Community() {
             <ArrowRight className="size-4" aria-hidden />
           </Link>
         </p>
-        {SITE.social.length > 0 && (
-          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2" aria-label="Noisemakers elsewhere">
-            {SITE.social.map((s) => (
-              <li key={s.href}>
-                <a href={s.href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 font-semibold">
-                  {s.label} <ArrowUpRight className="size-4" aria-hidden />
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="kicker mt-10 text-white/75">Follow Noisemakers</p>
+        <SocialLinks className="mt-4" />
       </div>
     </section>
   )

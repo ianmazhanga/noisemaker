@@ -21,7 +21,7 @@ npm run check:feed     # no-key check for recent uploads the sync hasn't picked 
 | --- | --- |
 | `/` | Hero (Watch the latest episode, Tell your story, Subscribe), The Conversations, Latest conversations, Clips, Meet the noisemakers, community invitation |
 | `/episodes` | Every episode, newest first. Search by title or guest (`?q=`), filter by topic (`?topic=`) or guest (`?guest=`), sort (`?sort=oldest`) |
-| `/episodes/:slug` | Episode page: inline player, description, discussion points, guests, series parts, related clips and episodes |
+| `/episodes/:slug` | Episode page: thumbnail that opens the video on YouTube, description, discussion points, guests, series parts, related clips and episodes |
 | `/clips` | Every YouTube Short, with links to the full episode where there is one |
 | `/about` | About the podcast, topics, and every guest |
 | `/tell-your-story` | Form for people who want to share their story or request an introductory call |
@@ -67,7 +67,7 @@ New uploads appear on the site automatically. Nobody needs to edit anything.
 - **New videos** appear with YouTube's own title (hashtags removed), date, length, thumbnail and description, newest first. Videos up to 3 minutes long are treated as Shorts (shown on `/clips`), and longer ones as episodes.
 - **Hand-written details win.** If a video has an entry in `src/data/episodes.ts` or `clips.ts`, that entry's summary, topic, guests and slug are used. You can add one at any time to enrich a new upload.
 - **Deleted or private videos** disappear from the site on the next sync. Unlisted videos, live streams and upcoming premieres aren't shown.
-- **Restricted videos** (embedding turned off, or age-restricted) show a "Watch on YouTube" link instead of a player.
+- **Restricted videos** (embedding turned off, or age-restricted) are flagged by the sync. Videos always play on YouTube, so this no longer changes what the site shows.
 - **Episode URLs never change.** Each episode's slug is fixed the first time it's seen, even if its YouTube title changes later.
 - **Safety net:** if YouTube is unavailable, the sync retries and then gives up, and the site keeps its current list. If more than half the videos would vanish at once, it refuses (run `npm run sync:youtube -- --force` locally if that's really intended).
 - **Quota:** each run uses about 2–4 of the API's 10,000 free daily units.
@@ -90,6 +90,14 @@ The key lives only in GitHub's encrypted secrets. It's never in the code or the 
 
 ---
 
+## Owner dashboard
+
+`/admin` is the private owner dashboard: a separate sign-in for each person (Owner or Content Manager), and the **Story Inbox** with statuses, private notes, contact buttons, a live "new stories" counter and notifications. It runs on Supabase (`supabase/migrations/`) plus two Netlify Functions: `netlify/functions/stories.ts` saves each story, and `admin-invite.ts` sends invitations.
+
+**Setup and day-to-day use: [docs/admin-setup.md](docs/admin-setup.md).** Until it's set up, `/admin` says so and nothing else changes.
+
+---
+
 ## Story submissions
 
 `/tell-your-story` lets people either **submit their story** or **request an introductory call**. There's no database, no login and no automatic emails to applicants.
@@ -99,7 +107,7 @@ The key lives only in GitHub's encrypted secrets. It's never in the code or the 
 1. The visitor fills in the form. It checks every field before sending: name, email, phone with country code (required if they choose phone or WhatsApp), story, topics, preferred format, consent, and confirmation that they're 18 or over.
 2. The page sends the answers to **Netlify Forms** and shows a confirmation with a reference number such as `NM-261016-K3QX`.
 3. A call request is marked **"pending: not booked until the team confirms"**. The site never books a call or claims one is confirmed.
-4. The owner reads the submission in Netlify and contacts the person by email, phone or WhatsApp, as they prefer.
+4. The owner reads the submission at `/inbox` (or in Netlify) and contacts the person the way they chose. Each submission in `/inbox` has **Contact on WhatsApp**, **Call now** and **Send email** buttons, the person's preferred one first and marked, plus a ready-made message the owner edits before sending. Nothing is sent automatically.
 
 **Reading submissions:** Netlify → your site → **Forms → tell-your-story**. Every field is listed under its name (`full_name`, `story_summary`, `reference`…). From there you can also **download a CSV** or **delete** a submission. You can do this from a phone browser too.
 
@@ -155,7 +163,7 @@ The newest episode becomes the homepage lead automatically. To pin a different o
 ### What's missing
 
 - **Host:** the channel doesn't name its host, so the site has no host profile.
-- **Social links:** the channel links none. Add them to `SITE.social` and they appear in the footer and community section.
+- **Social links:** the channel links none. Paste Instagram, X and TikTok profile URLs into `SITE.social` and their logos appear beside YouTube's in the footer, community section, About page and mobile menu.
 - **Contact email:** not public. Set `SITE.contactEmail` and it appears in the footer and on the privacy page, as the address for deletion requests.
 
 ---
@@ -164,7 +172,7 @@ The newest episode becomes the homepage lead automatically. To pin a different o
 
 - **Content layer:** components read content only through `src/lib/content.ts`. It merges the sync snapshot with the hand-written data using `src/lib/catalog.ts`.
 - **Thumbnails:** come straight from YouTube (`i.ytimg.com`). `<Thumb>` crops YouTube's letterboxed 4:3 thumbnails to the picture area at any aspect ratio, fades images in, and falls back to a branded tile if an image fails.
-- **Video:** no YouTube code loads until someone presses play, and nothing autoplays with sound on page load. Players use the privacy-enhanced `youtube-nocookie.com` domain.
+- **Video:** the site embeds no YouTube player. Every play button, thumbnail and clip links to the video on YouTube and opens it in a new tab.
 - **Fallbacks:** if the episode list were ever empty, the homepage points to the YouTube channel instead of showing a broken section.
 - **SEO:** per-page title, description, canonical URL, Open Graph and Twitter/X tags (`src/components/seo/Seo.tsx`), plus structured data for the podcast, episodes and clips.
 - **Accessibility:**

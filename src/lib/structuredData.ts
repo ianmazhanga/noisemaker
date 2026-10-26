@@ -21,7 +21,7 @@ export function seriesLd(): Ld {
     url: SITE.url,
     image: `${SITE.url}/og-image.png`,
     inLanguage: 'en',
-    sameAs: [SITE.youtube.channelUrl, ...SITE.social.map((s) => s.href)],
+    sameAs: [SITE.youtube.channelUrl, ...Object.values(SITE.social).filter(Boolean)],
   }
 }
 
