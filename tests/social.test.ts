@@ -72,6 +72,9 @@ function fakeServices(calls: string[], aiReply: unknown = { summary: 'S', posts:
     const auth = new Headers(init?.headers).get('Authorization')
     if (url.endsWith('/auth/v1/user')) return auth === 'Bearer team-token' || auth === 'Bearer stranger-token' ? Response.json({ id: auth === 'Bearer team-token' ? 'u1' : 'u2' }) : new Response(null, { status: 401 })
     if (url.includes('/rest/v1/profiles')) return Response.json([{ role: url.includes('u1') ? 'content_manager' : null }])
+    // Cost controls: no settings row yet (as before the newsroom migration), and usage records are accepted.
+    if (url.includes('/rest/v1/app_settings')) return Response.json([])
+    if (url.includes('/rest/v1/ai_usage')) return new Response(null, { status: 201 })
     if (url.startsWith('https://api.openai.com/')) {
       const sent = JSON.parse(String(init?.body))
       assert.match(sent.messages[0].content, /Never invent quotations/)
@@ -87,7 +90,7 @@ test('only signed-in team members can use the AI, so nobody else spends the Open
   fakeServices(calls)
   process.env.OPENAI_API_KEY = 'sk-test'
   assert.equal((await handler(request(video))).status, 401)
-  assert.equal((await handler(request(video, 'forged'))).status, 403)
+  assert.equal((await handler(request(video, 'forged'))).status, 401)
   assert.equal((await handler(request(video, 'stranger-token'))).status, 403)
   assert.ok(!calls.some((u) => u.includes('openai')))
 })

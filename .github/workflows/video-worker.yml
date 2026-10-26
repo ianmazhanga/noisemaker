@@ -1,0 +1,61 @@
+name: Video worker
+
+# Processes AI Shorts jobs (transcription, clip finding, rendering) with FFmpeg. Heavy video
+# work never runs on Vercel. It checks for queued jobs every 15 minutes, and starts at once
+# when the dashboard wakes it (needs GITHUB_DISPATCH_TOKEN in Vercel). Each run works
+# through the queue for up to 50 minutes, then stops.
+#
+# Repository secrets needed: SUPABASE_URL, SUPABASE_SECRET_KEY, OPENAI_API_KEY.
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: video-worker
+  cancel-in-progress: false
+
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check for queued jobs
+        id: setup
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SECRET_KEY" ]; then
+            echo "SUPABASE_URL and SUPABASE_SECRET_KEY aren't set as repository secrets, so there's nothing to do."
+            echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          auth=""
+          case "$SUPABASE_SECRET_KEY" in eyJ*) auth="Authorization: Bearer $SUPABASE_SECRET_KEY";; esac
+          queued=$(curl -sS -m 20 -H "apikey: $SUPABASE_SECRET_KEY" ${auth:+-H "$auth"}             "$SUPABASE_URL/rest/v1/jobs?select=id&status=in.(queued,running)&kind=in.(analyze,render,transcribe)&limit=1" || echo "[]")
+          if [ "$queued" = "[]" ]; then
+            echo "No video jobs waiting."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+        if: steps.setup.outputs.ready == 'true'
+      - uses: actions/setup-node@v5
+        if: steps.setup.outputs.ready == 'true'
+        with:
+          node-version: 24
+      - name: Install FFmpeg and subtitle fonts
+        if: steps.setup.outputs.ready == 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-inter fonts-dejavu-core fonts-liberation > /dev/null
+      - name: Process queued video jobs
+        if: steps.setup.outputs.ready == 'true'
+        run: node --experimental-strip-types --no-warnings worker/index.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+          WORKER_ID: github-${{ github.run_id }}
+          WORKER_RUN_MINUTES: '50'

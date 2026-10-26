@@ -12,5 +12,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["**/*.ts", "../src/lib/storyForm.ts", "../src/lib/social.ts"]
+  "include": ["**/*.ts", "../src/lib/storyForm.ts", "../src/lib/social.ts", "../src/lib/costs.ts", "../src/lib/clips.ts", "../src/lib/newsroom.ts", "../src/lib/newsletter.ts", "../src/lib/rss.ts", "../src/lib/integrations.ts", "../scripts/lib/youtube-sync.ts"]
 }
