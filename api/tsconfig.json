@@ -1,0 +1,16 @@
+{
+  // Used by Vercel when it compiles the functions in this folder. Imports keep their .ts
+  // extensions (so tests can run the files directly in Node), and the compiler rewrites
+  // them to .js in the deployed output.
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "module": "nodenext",
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["**/*.ts", "../src/lib/storyForm.ts"]
+}

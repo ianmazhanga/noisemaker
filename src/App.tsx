@@ -14,7 +14,6 @@ const AboutPage = lazy(() => import('./pages/AboutPage'))
 const TellYourStoryPage = lazy(() => import('./pages/TellYourStoryPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
-const InboxPage = lazy(() => import('./pages/InboxPage'))
 // Owner dashboard: its own layout, loaded only when someone opens /admin.
 const AdminApp = lazy(() => import('./admin/AdminApp'))
 const AdminOverview = lazy(() => import('./admin/OverviewPage'))
@@ -60,8 +59,8 @@ const router = createBrowserRouter([
       { path: 'about', element: <AboutPage /> },
       { path: 'tell-your-story', element: <TellYourStoryPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
-      // Private: password-protected, not linked from the site
-      { path: 'inbox', element: <InboxPage /> },
+      // The old password-protected inbox is now the dashboard's Story Inbox.
+      { path: 'inbox', element: <Navigate to="/admin/stories" replace /> },
       // URLs from the site's earlier layout
       { path: 'videos', element: <Navigate to="/episodes" replace /> },
       { path: 'latest', element: <Navigate to="/episodes" replace /> },

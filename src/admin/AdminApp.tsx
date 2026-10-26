@@ -41,7 +41,7 @@ function NotConfigured() {
   return (
     <AuthCard title="Dashboard not set up yet">
       <p className="text-muted">
-        The owner dashboard needs a Supabase project. Add <code className="font-mono text-sm">VITE_SUPABASE_URL</code> and <code className="font-mono text-sm">VITE_SUPABASE_KEY</code> in Netlify, then redeploy. The
+        The owner dashboard needs a Supabase project. Add <code className="font-mono text-sm">VITE_SUPABASE_URL</code> and <code className="font-mono text-sm">VITE_SUPABASE_KEY</code> in Vercel, then redeploy. The
         steps are in <code className="font-mono text-sm">docs/admin-setup.md</code>.
       </p>
     </AuthCard>

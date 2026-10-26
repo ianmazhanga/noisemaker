@@ -39,9 +39,8 @@ export default function PrivacyPage() {
             without your agreement, and it is never sold or used for marketing.
           </p>
           <p>
-            <strong className="text-ink">Where it’s stored:</strong> with our website host, Netlify, using its Netlify Forms service, and in our private team database at
-            Supabase, which runs our story inbox. Netlify may check submissions with an automated spam filter. Only the Noisemakers team can see submissions: in Netlify, on a
-            password-protected page of this site, or in our team dashboard, where each person has their own sign-in and the owner decides who may read stories.
+            <strong className="text-ink">Where it’s stored:</strong> in our private team database, run by Supabase. Only Noisemakers team members who have their own
+            sign-in, and whom the owner has allowed to read stories, can see submissions.
           </p>
           <p>
             <strong className="text-ink">How long:</strong> we delete submissions we aren’t taking forward within {RETENTION}. If your story becomes part of a conversation,

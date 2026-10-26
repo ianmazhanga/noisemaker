@@ -2,7 +2,7 @@
 
 The owner dashboard lives at **`/admin`**. It has sign-in with a separate account for each person, Owner and Content Manager roles, and the **Story Inbox** with statuses, private notes, contact buttons, a live "new stories" counter and notifications.
 
-Until the steps below are done, `/admin` shows "Dashboard not set up yet", and the rest of the site works exactly as before. Story submissions keep going to Netlify Forms either way.
+Story submissions from `/tell-your-story` are saved in this same database, so the form needs these steps done too. Until they are, `/admin` shows "Dashboard not set up yet" and the form asks people to try again later.
 
 Setup takes about 30 minutes. You need someone comfortable copying settings between two websites.
 
@@ -42,9 +42,9 @@ Invitations and "forgot password" emails come from Supabase. Its built-in sender
 
 Every other person is invited from the dashboard (**Settings → Team**), so this is the only time you need SQL.
 
-## 5. Connect the website (Netlify)
+## 5. Connect the website (Vercel)
 
-In Supabase, open **Project Settings → API Keys** (and **Data API** for the URL). Then in Netlify, go to **Site configuration → Environment variables** and add:
+In Supabase, open **Project Settings → API Keys** (and **Data API** for the URL). Then in Vercel, go to **Project → Settings → Environment Variables** and add these for **Production** (and Preview, if you use preview links):
 
 | Name | Value | Who sees it |
 |---|---|---|
@@ -53,17 +53,16 @@ In Supabase, open **Project Settings → API Keys** (and **Data API** for the UR
 | `SUPABASE_URL` | Same project URL | Server functions only |
 | `SUPABASE_SECRET_KEY` | The **secret** key (or legacy **service_role** key) | Server functions only. **Never** put this in a `VITE_` variable. |
 
-Then **Deploys → Trigger deploy**.
+Then **Deployments → ⋯ on the latest one → Redeploy**. `VITE_` variables are built into the pages, so a redeploy is needed after changing them.
 
 ## 6. Check it works
 
 1. Open `https://noisemakersnews.com/admin` and sign in as the owner. You should see the Overview.
 2. Send a test story from `/tell-your-story`. Within a few seconds:
    - Story Inbox shows **1 new**, and the bell shows a notification.
-   - Netlify Forms also has the submission (as before).
 3. Open it, change its status to **Contacted**. The counter goes down. Add a note.
 4. **Settings → Team:** invite the Content Manager. They get an email, choose a password at `/admin/reset`, and land on the dashboard. They won't see the Story Inbox unless you tick **Stories** next to their name.
-5. Delete the test story (owner only), in the dashboard and in Netlify Forms.
+5. Delete the test story (owner only).
 
 ---
 
@@ -85,11 +84,11 @@ Then **Deploys → Trigger deploy**.
 
 ## Privacy and retention
 
-Each submission is stored in **two places**: Netlify Forms and the dashboard database. The privacy page promises that submissions not taken forward are deleted within 12 months. When you delete a submission, delete it from both places. Do the same when someone asks for their data to be removed; search for their reference number (e.g. `NM-261016-K3QX`) in each.
+Submissions are stored only in the dashboard database. The privacy page promises that submissions not taken forward are deleted within 12 months, so delete those from the Story Inbox at least that often. When someone asks for their data to be removed, search for their reference number (e.g. `NM-261016-K3QX`) and delete it.
 
 ## Costs and limits
 
-- **Supabase Free plan:** enough for the Story Inbox. Free projects are **paused after about a week with no activity**. A paused project stops saving new stories to the dashboard, though Netlify Forms still gets them. Restore it from the Supabase dashboard, or move to the Pro plan (currently US$25/month) to avoid pausing.
+- **Supabase Free plan:** enough for the Story Inbox. Free projects are **paused after about a week with no activity**. **A paused project can't save new stories**, so the form shows an error until it's restored. Restore it from the Supabase dashboard, or move to the Pro plan (currently US$25/month) to avoid pausing.
 - **Email service (SMTP):** free plans cover invitations and password resets.
 - Check each provider's pricing page for current limits.
 
@@ -97,4 +96,4 @@ Each submission is stored in **two places**: Netlify Forms and the dashboard dat
 
 Video production, AI editing suggestions, social media, YouTube management, the AI news agent, news articles, newsletters, the content calendar and analytics. They're listed under "Coming later" in the sidebar. Two-step sign-in (MFA) is also planned for the owner account. Each part will be added and tested separately.
 
-The old password-protected `/inbox` page still works. It can be removed once everyone uses `/admin`.
+The old `/inbox` address now goes to the Story Inbox.

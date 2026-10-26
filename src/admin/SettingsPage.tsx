@@ -84,7 +84,7 @@ const INVITE_ERRORS: Record<string, string> = {
   forbidden: 'Only the owner can invite people.',
   'signed-out': 'Your sign-in has expired. Sign in again and retry.',
   invalid: 'Please check the email address.',
-  'not-configured': 'Invitations need SUPABASE_URL and SUPABASE_SECRET_KEY in Netlify. See docs/admin-setup.md.',
+  'not-configured': 'Invitations need SUPABASE_URL and SUPABASE_SECRET_KEY in Vercel. See docs/admin-setup.md.',
 }
 
 function Team() {

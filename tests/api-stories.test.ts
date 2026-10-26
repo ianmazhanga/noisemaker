@@ -1,7 +1,7 @@
 import { afterEach, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { EMPTY_FORM, parseStoryForm, type StoryForm } from '../src/lib/storyForm.ts'
-import handler from '../netlify/functions/stories.ts'
+import { POST as handler } from '../api/stories.ts'
 
 const valid: StoryForm = {
   ...EMPTY_FORM,
@@ -30,13 +30,14 @@ afterEach(() => {
 const post = (body: unknown) => new Request('https://example.com/api/stories', { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) })
 
 /** A fake Supabase REST API that records requests. `existing` is returned by the repeat check. */
-function fakeSupabase(calls: { url: string; init?: RequestInit }[], existing: unknown[] = [], insertStatus = 201) {
+function fakeSupabase(calls: { url: string; init?: RequestInit }[], existing: unknown[] = [], insertStatus = 201, recentCount = 0) {
   process.env.SUPABASE_URL = 'https://project.supabase.co'
   process.env.SUPABASE_SECRET_KEY = 'sb_secret_test'
   globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
     calls.push({ url: String(url), init })
     assert.equal(new Headers(init?.headers).get('apikey'), 'sb_secret_test')
     if (init?.method === 'POST') return new Response(null, { status: insertStatus })
+    if (init?.method === 'HEAD') return new Response(null, { headers: { 'content-range': `*/${recentCount}` } })
     return Response.json(existing)
   }) as typeof fetch
 }
@@ -79,7 +80,6 @@ test('rejects invalid submissions and saves nothing', async () => {
   assert.equal((await handler(post({ form: valid, reference: 'not-a-reference' }))).status, 400)
   assert.equal((await handler(post('{not json'))).status, 400)
   assert.equal((await handler(post({ form: { ...valid, storySummary: 'x'.repeat(40_000) }, reference: 'NM-261026-K3QX' }))).status, 400)
-  assert.equal((await handler(new Request('https://example.com/api/stories'))).status, 405)
   assert.equal(calls.length, 0)
 })
 
@@ -95,7 +95,7 @@ test('the same story sent again within a day is not saved twice', async () => {
   const calls: { url: string; init?: RequestInit }[] = []
   fakeSupabase(calls, [{ reference: 'NM-261025-ABCD' }])
   const res = await handler(post({ form: valid, reference: 'NM-261026-K3QX' }))
-  assert.deepEqual(await res.json(), { ok: true, duplicate: true })
+  assert.deepEqual(await res.json(), { ok: true, duplicate: true, reference: 'NM-261025-ABCD' })
   assert.ok(!calls.some((c) => c.init?.method === 'POST'))
 })
 
@@ -112,4 +112,12 @@ test('a Supabase failure is reported without logging personal details', async ()
   }
   assert.ok(!JSON.stringify(logged).includes('Tendai'))
   assert.ok(!JSON.stringify(logged).includes('tendai@example.com'))
+})
+
+test('a flood of submissions is turned away before anything is saved', async () => {
+  const calls: { url: string; init?: RequestInit }[] = []
+  fakeSupabase(calls, [], 201, 20)
+  const res = await handler(post({ form: valid, reference: 'NM-261026-K3QX' }))
+  assert.equal(res.status, 429)
+  assert.ok(!calls.some((c) => c.init?.method === 'POST'))
 })

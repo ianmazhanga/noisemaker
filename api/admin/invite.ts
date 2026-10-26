@@ -5,7 +5,7 @@
  * Emails an invitation to a new team member and gives their account the chosen role.
  * Only an owner may call it: the token is checked with Supabase and the caller's role is
  * read from the database, never from the request. Uses SUPABASE_URL and SUPABASE_SECRET_KEY
- * (see netlify/functions/stories.ts).
+ * (see api/stories.ts).
  */
 const ROLES = ['owner', 'content_manager'] as const
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
@@ -13,9 +13,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
 
-export default async (req: Request) => {
-  if (req.method !== 'POST') return json({ error: 'method-not-allowed' }, 405)
-
+export async function POST(req: Request): Promise<Response> {
   const base = (process.env.SUPABASE_URL ?? '').replace(/\/+$/, '')
   const key = process.env.SUPABASE_SECRET_KEY ?? ''
   if (!base.startsWith('https://') || !key) return json({ error: 'not-configured' }, 503)
@@ -69,9 +67,4 @@ export default async (req: Request) => {
     console.error(error instanceof Error ? error.message : 'Invitation failed')
     return json({ error: 'unavailable' }, 502)
   }
-}
-
-export const config = {
-  path: '/api/admin/invite',
-  rateLimit: { windowLimit: 10, windowSize: 60, aggregateBy: ['ip', 'domain'] },
 }
