@@ -24,6 +24,8 @@ export interface ApiVideo {
   }
   contentDetails?: { duration?: string; contentRating?: { ytRating?: string } }
   status?: { privacyStatus?: string; uploadStatus?: string; embeddable?: boolean }
+  /** Only present when 'statistics' is requested (the dashboard's sync does; the site's doesn't). */
+  statistics?: { viewCount?: string; likeCount?: string; commentCount?: string }
 }
 
 export type FetchLike = (url: string) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>
@@ -183,7 +185,13 @@ export const uploadsPlaylistId = (channelId: string) => `UU${channelId.slice(2)}
  * the playlist plus 1 per 50 for the details: a few units per run against a
  * default allowance of 10,000 a day.
  */
-export async function fetchChannelVideos(channelId: string, apiKey: string, fetchImpl: FetchLike, retryOpts?: { retries?: number; baseDelayMs?: number }): Promise<ApiVideo[]> {
+export async function fetchChannelVideos(
+  channelId: string,
+  apiKey: string,
+  fetchImpl: FetchLike,
+  retryOpts?: { retries?: number; baseDelayMs?: number },
+  parts = 'snippet,contentDetails,status',
+): Promise<ApiVideo[]> {
   const ids: string[] = []
   let pageToken = ''
   do {
@@ -200,7 +208,7 @@ export async function fetchChannelVideos(channelId: string, apiKey: string, fetc
   const unique = [...new Set(ids)]
   const videos: ApiVideo[] = []
   for (let i = 0; i < unique.length; i += 50) {
-    const params = new URLSearchParams({ part: 'snippet,contentDetails,status', id: unique.slice(i, i + 50).join(','), maxResults: '50', key: apiKey })
+    const params = new URLSearchParams({ part: parts, id: unique.slice(i, i + 50).join(','), maxResults: '50', key: apiKey })
     const page = (await getJson(`${API}/videos?${params}`, fetchImpl, retryOpts)) as { items?: ApiVideo[] }
     // Deleted or private videos are simply missing from this response.
     videos.push(...(page.items ?? []))

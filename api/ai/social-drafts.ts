@@ -13,8 +13,9 @@
  *   SUPABASE_URL, SUPABASE_SECRET_KEY   to check the caller is on the team (see api/stories.ts)
  */
 import { cleanHashtags, PLATFORM_KEYS, PLATFORMS, unsupportedQuotes, type Platform } from '../../src/lib/social.ts'
+import { chatJson } from '../_lib/ai.ts'
+import { caller, failure } from '../_lib/server.ts'
 
-const DEFAULT_MODEL = 'gpt-4o-mini'
 const MAX_SOURCE = 6000
 
 const json = (body: unknown, status = 200) =>
@@ -33,23 +34,7 @@ export interface DraftsResponse {
   drafts: DraftSuggestion[]
 }
 
-/** Is the caller a signed-in team member? Checked with Supabase; the role comes from the database. */
-async function isTeamMember(token: string): Promise<boolean | 'not-configured'> {
-  const base = (process.env.SUPABASE_URL ?? '').replace(/\/+$/, '')
-  const key = process.env.SUPABASE_SECRET_KEY ?? ''
-  if (!base.startsWith('https://') || !key) return 'not-configured'
-  const headers: Record<string, string> = { apikey: key }
-  if (key.startsWith('eyJ')) headers.Authorization = `Bearer ${key}`
-  const me = await fetch(`${base}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(8000) })
-  if (!me.ok) return false
-  const { id } = (await me.json()) as { id?: string }
-  if (!id) return false
-  const res = await fetch(`${base}/rest/v1/profiles?select=role&id=eq.${encodeURIComponent(id)}`, { headers, signal: AbortSignal.timeout(8000) })
-  const [profile] = res.ok ? ((await res.json()) as { role: string | null }[]) : []
-  return Boolean(profile?.role)
-}
-
-function instructions(platforms: Platform[], variations: number): string {
+export function instructions(platforms: Platform[], variations: number): string {
   return [
     'You write social media posts for Noisemakers News, a US-based storytelling, interview and podcast channel.',
     'Tone: warm, professional, engaging and informative. Plain English. No clickbait, no ALL CAPS, at most one emoji per post.',
@@ -90,53 +75,26 @@ export function sanitise(raw: unknown, platforms: Platform[], source: string): D
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const token = req.headers.get('Authorization')?.match(/^Bearer (\S+)$/)?.[1]
-  if (!token) return json({ error: 'signed-out' }, 401)
+  if (!req.headers.get('Authorization')?.match(/^Bearer (\S+)$/)) return json({ error: 'signed-out' }, 401)
 
   const body: unknown = await req.json().catch(() => null)
   const { title, description, platforms, variations } = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
   const chosen = Array.isArray(platforms) ? PLATFORM_KEYS.filter((p) => platforms.includes(p)) : []
   const count = typeof variations === 'number' ? Math.min(3, Math.max(1, Math.round(variations))) : 2
   if (typeof title !== 'string' || !title.trim() || title.length > 300 || !chosen.length) return json({ error: 'invalid' }, 400)
-  const source = `Title: ${title.trim()}\n\n${typeof description === 'string' ? description.slice(0, MAX_SOURCE) : ''}`.trim()
+  const source = `Title: ${title.trim()}
+
+${typeof description === 'string' ? description.slice(0, MAX_SOURCE) : ''}`.trim()
 
   try {
-    const member = await isTeamMember(token)
-    if (member === 'not-configured') return json({ error: 'not-configured' }, 503)
-    if (!member) return json({ error: 'forbidden' }, 403)
-
-    const apiKey = process.env.OPENAI_API_KEY ?? ''
-    if (!apiKey) return json({ error: 'ai-not-configured' }, 503)
-
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
-        temperature: 0.7,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: instructions(chosen, count) },
-          { role: 'user', content: `SOURCE:\n${source}` },
-        ],
-      }),
-      signal: AbortSignal.timeout(45_000),
-    })
-    if (res.status === 401) return json({ error: 'ai-key-invalid' }, 502)
-    if (res.status === 429) return json({ error: 'ai-busy' }, 429)
-    if (!res.ok) throw new Error(`OpenAI ${res.status}`)
-    const completion = (await res.json()) as { choices?: { message?: { content?: string } }[] }
-    let parsed: unknown = null
-    try {
-      parsed = JSON.parse(completion.choices?.[0]?.message?.content ?? '')
-    } catch {
-      throw new Error('OpenAI returned something other than JSON')
-    }
+    // Viewers can read the dashboard but not spend AI credit.
+    const who = await caller(req, 'writer')
+    const parsed = await chatJson({ feature: 'social-drafts', userId: who.id, system: instructions(chosen, count), user: `SOURCE:
+${source}`, temperature: 0.7, maxTokens: 2000 })
     const result = sanitise(parsed, chosen, source)
     if (!result.drafts.length) return json({ error: 'ai-empty' }, 502)
     return json(result)
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Writing drafts failed')
-    return json({ error: 'unavailable' }, 502)
+    return failure(error, 'Writing drafts')
   }
 }
