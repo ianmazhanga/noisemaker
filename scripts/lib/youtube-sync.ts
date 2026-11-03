@@ -42,6 +42,7 @@ export function parseIsoDuration(iso: string | undefined): number {
 export function cleanTitle(title: string): string {
   return title
     .replace(/(^|\s)#[\p{L}\p{N}_]+/gu, ' ')
+    .replace(/#/g, '')
     .replace(/\s+/g, ' ')
     .replace(/\s*[|·:–—-]\s*$/, '')
     .trim()
