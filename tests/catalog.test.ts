@@ -82,9 +82,12 @@ test('an empty snapshot falls back to the hand-written lists', () => {
 test('the committed snapshot shows every current episode and clip, newest first', () => {
   const snapshot = JSON.parse(readFileSync(new URL('../src/data/youtube.json', import.meta.url), 'utf8')) as YouTubeSnapshot
   const { episodes, clips } = buildCatalog(snapshot, EPISODES, CLIPS)
-  assert.equal(episodes.length, EPISODES.length)
-  assert.equal(clips.length, CLIPS.length)
+  assert.deepEqual(new Set(episodes.map((e) => e.youtubeId)), new Set(snapshot.videos.filter((v) => v.kind === 'episode').map((v) => v.youtubeId)))
+  assert.deepEqual(new Set(clips.map((c) => c.youtubeId)), new Set(snapshot.videos.filter((v) => v.kind === 'short').map((v) => v.youtubeId)))
   for (let i = 1; i < episodes.length; i++) assert.ok(episodes[i - 1].publishedAt >= episodes[i].publishedAt)
-  // Every existing episode URL keeps working.
-  assert.deepEqual(new Set(episodes.map((e) => e.slug)), new Set(EPISODES.map((e) => e.slug)))
+  // Curated URLs remain stable while newly synced episodes can add their own.
+  for (const original of EPISODES) {
+    const current = episodes.find((e) => e.youtubeId === original.youtubeId)
+    if (snapshot.videos.some((v) => v.youtubeId === original.youtubeId)) assert.equal(current?.slug, original.slug)
+  }
 })
