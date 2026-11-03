@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node --experimental-strip-types --no-warnings scripts/build-seo.mjs",
     "lint": "oxlint",
     "test": "node --experimental-strip-types --no-warnings scripts/validate-content.ts && node --experimental-strip-types --no-warnings --test \"tests/*.test.ts\"",
     "sync:youtube": "node --experimental-strip-types --no-warnings scripts/sync-youtube.ts",
