@@ -18,7 +18,7 @@ test('SEO build follows catalogue additions/removals and escapes untrusted video
     }] }))
     const result = spawnSync(process.execPath, ['--experimental-strip-types', '--no-warnings', resolve('scripts/build-seo.mjs')], { cwd: directory, encoding: 'utf8' })
     assert.equal(result.status, 0, result.stderr)
-    const sitemap = await readFile(join(directory, 'dist/sitemap.xml'), 'utf8')
+    const sitemap = await readFile(join(directory, 'dist/sitemap-base.xml'), 'utf8')
     assert.match(sitemap, /https:\/\/noisemakersnews.com\/episodes\/new-episode/)
     assert.doesNotMatch(sitemap, /innocent-mathe|\/admin|\/inbox/)
     const html = await readFile(join(directory, 'dist/episodes/new-episode/index.html'), 'utf8')
