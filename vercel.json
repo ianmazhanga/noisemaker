@@ -5,6 +5,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/news/:slug",
+      "destination": "/api/public-seo?slug=:slug"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/public-seo?sitemap=1"
+    },
+    {
       "source": "/episodes",
       "destination": "/episodes/index.html"
     },
@@ -54,6 +62,9 @@
     },
     "api/ai/*.ts": {
       "maxDuration": 90
+    },
+    "api/public-seo.ts": {
+      "includeFiles": "dist/{index.html,sitemap-base.xml}"
     }
   },
   "crons": [
