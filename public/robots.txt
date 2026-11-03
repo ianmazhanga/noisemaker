@@ -2,3 +2,5 @@ User-agent: *
 Disallow: /admin
 Disallow: /inbox
 Allow: /
+
+Sitemap: https://noisemakersnews.com/sitemap.xml
