@@ -43,6 +43,8 @@ test('parses ISO 8601 durations', () => {
 test('cleans titles, descriptions and slugs', () => {
   assert.equal(cleanTitle('Why couples struggle to communicate #marriage #shorts'), 'Why couples struggle to communicate')
   assert.equal(cleanTitle('#Family  Meetings  |'), 'Meetings')
+  assert.equal(cleanTitle('My first winter in Michigan # UniversityofZimbabwe'), 'My first winter in Michigan UniversityofZimbabwe')
+  assert.equal(cleanTitle('Culture#shock # #shorts'), 'Cultureshock')
   assert.deepEqual(cleanDescription('One.\n\n#a #b\n\nTwo\nlines.\n\n\n'), ['One.', 'Two\nlines.'])
   assert.equal(slugify('Alcohol Addiction, Recovery & Hope: The Innocent Mathe Story'), 'alcohol-addiction-recovery-hope-the-innocent-mathe-story')
   assert.equal(slugify('Ambuya Chihwai’s story — Part 1'), 'ambuya-chihwais-story-part-1')
