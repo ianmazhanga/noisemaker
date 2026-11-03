@@ -54,26 +54,30 @@ export function Seo({
   const ldString = jsonLd ? JSON.stringify(jsonLd) : ''
 
   useEffect(() => {
-    const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name}: ${SITE.tagline}`
-    const url = `${SITE.url}${pathname === '/' ? '' : pathname}`
+    const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name} | Inspirational Interviews & Stories`
+    const url = new URL(pathname, SITE.url).href
     const absImage = image.startsWith('http') ? image : `${SITE.url}${image}`
 
     document.title = fullTitle
     setMeta('name', 'description', description)
-    setMeta('name', 'robots', noindex ? 'noindex, follow' : 'index, follow')
+    setMeta('name', 'robots', noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large')
     setCanonical(canonical || url || SITE.url)
 
-    setMeta('property', 'og:title', title ?? fullTitle)
+    setMeta('property', 'og:site_name', SITE.name)
+    setMeta('property', 'og:title', fullTitle)
     setMeta('property', 'og:description', description)
     setMeta('property', 'og:type', type)
-    setMeta('property', 'og:url', url || SITE.url)
+    setMeta('property', 'og:url', canonical || url)
     setMeta('property', 'og:image', absImage)
     setMeta('property', 'og:image:alt', imageAlt)
 
     setMeta('name', 'twitter:card', 'summary_large_image')
-    setMeta('name', 'twitter:title', title ?? fullTitle)
+    setMeta('name', 'twitter:title', fullTitle)
     setMeta('name', 'twitter:description', description)
     setMeta('name', 'twitter:image', absImage)
+    setMeta('name', 'twitter:image:alt', imageAlt)
+    // Static route metadata is replaced when navigating within the app.
+    document.querySelectorAll('script[data-seo="build"]').forEach((el) => el.remove())
 
     let script: HTMLScriptElement | null = null
     if (ldString) {

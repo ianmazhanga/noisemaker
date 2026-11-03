@@ -1,10 +1,10 @@
 export const SITE = {
-  name: 'Noisemakers',
+  name: 'Noisemakers News',
   /** The channel's name on YouTube. */
   channelName: 'Noisemakers News Network',
   tagline: 'Not all noise is bad noise',
   description:
-    'Noisemakers is a video podcast of inspirational interviews and stories about marriage, parenting, family and the journeys that shape us. Not all noise is bad noise.',
+    'Official platform for Noisemakers News, featuring inspirational interviews, impactful stories, and insightful discussions across all aspects of life.',
   /** Production origin, used for canonical URLs, Open Graph and structured data. */
   url: 'https://noisemakersnews.com',
   /** Year of the channel's first upload (YouTube shows "Joined May 6, 2024"). */

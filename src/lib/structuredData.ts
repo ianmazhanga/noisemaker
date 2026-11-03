@@ -29,13 +29,28 @@ export function websiteLd(): Ld {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
+    '@id': `${SITE.url}/#website`,
     name: SITE.name,
+    alternateName: 'Noisemakers',
     url: SITE.url,
+    publisher: organizationLd(),
     potentialAction: {
       '@type': 'SearchAction',
       target: `${SITE.url}/episodes?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
+  }
+}
+
+export function organizationLd(): Ld {
+  return {
+    '@type': 'Organization',
+    '@id': `${SITE.url}/#organization`,
+    name: SITE.name,
+    url: SITE.url,
+    description: SITE.description,
+    logo: { '@type': 'ImageObject', url: `${SITE.url}/apple-touch-icon.png` },
+    sameAs: [SITE.youtube.channelUrl, ...Object.values(SITE.social).filter(Boolean)],
   }
 }
 

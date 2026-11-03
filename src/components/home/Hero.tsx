@@ -58,7 +58,7 @@ export function Hero() {
         <div className="lg:col-span-6 xl:col-span-6">
           <p className="kicker flex items-center gap-2.5 text-muted">
             <span className="size-2 rounded-full bg-blue" aria-hidden />
-            A video podcast of inspirational interviews & stories
+            Noisemakers News · Inspirational interviews & stories
           </p>
           <h1 id="hero-title" className="display-xl mt-5 md:mt-6">
             Not all noise is <span className="mark">bad noise.</span>
