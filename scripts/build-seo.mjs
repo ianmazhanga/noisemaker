@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { SITE } from '../src/config/site.ts'
 import { EPISODES } from '../src/data/episodes.ts'
@@ -76,5 +76,6 @@ for (const page of pages) {
   await writeFile(join(directory, 'index.html'), html)
 }
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${escape(new URL(p.path, SITE.url).href)}</loc></url>`).join('\n')}\n</urlset>\n`
-await writeFile('dist/sitemap.xml', sitemap)
+await writeFile('dist/sitemap-base.xml', sitemap)
+await rm('dist/sitemap.xml', { force: true })
 console.log(`SEO: generated initial HTML and sitemap for ${pages.length} public URLs.`)
