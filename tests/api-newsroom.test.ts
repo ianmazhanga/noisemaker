@@ -343,6 +343,30 @@ test('OAuth sign-in uses state and PKCE, and the code is exchanged for the right
   assert.match(calls[0].headers.get('Authorization')!, /^Basic /)
 })
 
+test('TikTok sign-in follows the web Login Kit flow and keeps the secret on the server', async () => {
+  process.env.TIKTOK_CLIENT_KEY = 'sbawkey'
+  process.env.TIKTOK_CLIENT_SECRET = 'tsecret'
+  const redirect = 'https://noisemakersnews.com/api/oauth/callback'
+  const url = new URL(authorizeUrl('tiktok', 'state123', 'verifier-value-long-enough', redirect))
+  assert.equal(url.origin + url.pathname, 'https://www.tiktok.com/v2/auth/authorize/')
+  assert.deepEqual([...url.searchParams.keys()].sort(), ['client_key', 'redirect_uri', 'response_type', 'scope', 'state'])
+  assert.equal(url.searchParams.get('redirect_uri'), redirect)
+  assert.ok(!url.href.includes('tsecret'), 'the secret never goes to the browser')
+  process.env.TIKTOK_SCOPES = 'user.info.basic, video.upload'
+  assert.equal(new URL(authorizeUrl('tiktok', 's', 'v', redirect)).searchParams.get('scope'), 'user.info.basic,video.upload')
+  delete process.env.TIKTOK_SCOPES
+
+  const calls = fakeFetch([
+    (u) => (u.pathname === '/v2/oauth/token/' ? Response.json({ access_token: 'act', refresh_token: 'rft', open_id: 'OPEN1', expires_in: 86400, scope: 'user.info.basic,video.upload' }) : undefined),
+    (u) => (u.pathname === '/v2/user/info/' ? Response.json({ data: { user: { open_id: 'OPEN1', display_name: 'Noisemakers' } }, error: { code: 'ok' } }) : undefined),
+  ])
+  const [c] = await exchangeCode('tiktok', 'code1', 'verifier-value-long-enough', redirect)
+  const sent = calls[0].body as Record<string, string>
+  assert.deepEqual([sent.client_key, sent.client_secret, sent.grant_type, sent.redirect_uri, sent.code_verifier], ['sbawkey', 'tsecret', 'authorization_code', redirect, undefined])
+  assert.equal(new URL(calls[1].url).searchParams.get('fields'), 'open_id,display_name', 'no fields that need scopes we lack')
+  assert.deepEqual([c.platform, c.external_account_id, c.account_name, c.refresh_token, c.scopes], ['tiktok', 'OPEN1', 'Noisemakers', 'rft', ['user.info.basic', 'video.upload']])
+})
+
 test('Meta sign-in connects the Page and its linked Instagram account', async () => {
   process.env.META_APP_ID = 'app'
   process.env.META_APP_SECRET = 'secret'

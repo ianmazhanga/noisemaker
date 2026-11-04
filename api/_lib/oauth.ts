@@ -7,7 +7,8 @@
  *   Facebook + Instagram  META_APP_ID, META_APP_SECRET            (one sign-in connects both)
  *   X                     X_CLIENT_ID, X_CLIENT_SECRET
  *   YouTube               GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
- *   TikTok                TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET
+ *   TikTok                TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET     (Sandbox or live keys)
+ *                         TIKTOK_SCOPES (optional): must match the scopes added to the TikTok app
  * Redirect URL to register with every app: <site>/api/oauth/callback
  */
 import type { Platform } from '../../src/lib/social.ts'
@@ -42,6 +43,9 @@ const SCOPES: Record<Provider, string> = {
   tiktok: 'user.info.basic,user.info.stats,video.list,video.upload,video.publish',
 }
 
+/** TikTok refuses the sign-in if we ask for a scope the app (or its Sandbox) hasn't been given. */
+const tiktokScopes = () => (process.env.TIKTOK_SCOPES || SCOPES.tiktok).replace(/\s+/g, '')
+
 /** The platform sign-in page to send the owner to. */
 export function authorizeUrl(p: Provider, state: string, verifier: string, redirectUri: string): string {
   const { id } = credentials(p)
@@ -54,7 +58,10 @@ export function authorizeUrl(p: Provider, state: string, verifier: string, redir
     case 'google':
       return `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({ client_id: id, redirect_uri: redirectUri, response_type: 'code', scope: SCOPES.google, state, access_type: 'offline', prompt: 'consent', include_granted_scopes: 'true', code_challenge: challenge, code_challenge_method: 'S256' })}`
     case 'tiktok':
-      return `https://www.tiktok.com/v2/auth/authorize/?${new URLSearchParams({ client_key: id, redirect_uri: redirectUri, response_type: 'code', scope: SCOPES.tiktok, state, code_challenge: challenge, code_challenge_method: 'S256' })}`
+      // TikTok's web Login Kit: the code is exchanged on the server with the client secret and
+      // the single-use state guards the sign-in. No PKCE: TikTok's web flow doesn't use it, and
+      // its desktop PKCE expects a non-standard hex challenge that wouldn't match ours.
+      return `https://www.tiktok.com/v2/auth/authorize/?${new URLSearchParams({ client_key: id, scope: tiktokScopes(), redirect_uri: redirectUri, state, response_type: 'code' })}`
   }
 }
 
@@ -124,10 +131,13 @@ export async function exchangeCode(p: Provider, code: string, verifier: string, 
     if (!channel) throw new HttpError(409, 'no-youtube-channel')
     return [{ platform: 'youtube', provider: 'google', external_account_id: channel.id, account_name: channel.snippet?.title ?? '', profile_url: `https://www.youtube.com/channel/${channel.id}`, access_token: String(t.access_token), refresh_token: String(t.refresh_token ?? ''), expires_at: expiry(t.expires_in), scopes: String(t.scope ?? '').split(' '), meta: {} }]
   }
-  const t = await form(fetchImpl, 'https://open.tiktokapis.com/v2/oauth/token/', { client_key: c.id, client_secret: c.secret, code, grant_type: 'authorization_code', redirect_uri: redirectUri, code_verifier: verifier })
-  const me = (await getJson(fetchImpl, 'https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,profile_deep_link', String(t.access_token))) as { data?: { user?: { open_id: string; display_name: string; profile_deep_link?: string } } }
+  const t = await form(fetchImpl, 'https://open.tiktokapis.com/v2/oauth/token/', { client_key: c.id, client_secret: c.secret, code, grant_type: 'authorization_code', redirect_uri: redirectUri })
+  const granted = String(t.scope ?? '').split(',').filter(Boolean)
+  // profile_deep_link needs the user.info.profile scope, so only ask for it when it was granted.
+  const fields = granted.includes('user.info.profile') ? 'open_id,display_name,profile_deep_link' : 'open_id,display_name'
+  const me = (await getJson(fetchImpl, `https://open.tiktokapis.com/v2/user/info/?fields=${fields}`, String(t.access_token))) as { data?: { user?: { open_id: string; display_name: string; profile_deep_link?: string } } }
   const user = me.data?.user
-  return [{ platform: 'tiktok', provider: 'tiktok', external_account_id: user?.open_id ?? String(t.open_id ?? ''), account_name: user?.display_name ?? '', profile_url: user?.profile_deep_link?.startsWith('https://') ? user.profile_deep_link : '', access_token: String(t.access_token), refresh_token: String(t.refresh_token ?? ''), expires_at: expiry(t.expires_in), scopes: String(t.scope ?? '').split(','), meta: {} }]
+  return [{ platform: 'tiktok', provider: 'tiktok', external_account_id: user?.open_id ?? String(t.open_id ?? ''), account_name: user?.display_name ?? '', profile_url: user?.profile_deep_link?.startsWith('https://') ? user.profile_deep_link : '', access_token: String(t.access_token), refresh_token: String(t.refresh_token ?? ''), expires_at: expiry(t.expires_in), scopes: granted, meta: {} }]
 }
 
 /** Saves connections: encrypted tokens in social_connections, the visible status in social_accounts. */
