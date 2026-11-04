@@ -6,7 +6,8 @@ import { inputClass } from '../components/inbox/shared'
 import { formatSeconds } from '../lib/clips'
 import { useAdmin } from './context'
 import { Spinner } from './AdminApp'
-import { Badge, Card, Drawer, Empty, NeedsMigration, Notice, PageHeader, Warnings } from './ui'
+import { Badge, Card, Drawer, Empty, NeedsMigration, Notice, PageHeader, Tabs, Warnings } from './ui'
+import { CategoriesPanel } from './CategoriesPanel'
 import { api, day, useLoad, when } from './lib'
 
 interface Video {
@@ -56,6 +57,21 @@ export default function YouTubePage() {
       error: v.error ?? posts.error,
     }
   }, [db])
+  const tabs = (
+    <div className="mt-6">
+      <Tabs label="YouTube Manager" value={(params.get('view') === 'categories' ? 'categories' : 'videos') as 'videos' | 'categories'} onChange={(t) => setParams(t === 'categories' ? { view: 'categories' } : {})} tabs={{ videos: 'Videos', categories: 'Episode categories' }} />
+    </div>
+  )
+  if (params.get('view') === 'categories')
+    return (
+      <div className="max-w-6xl">
+        <PageHeader title="YouTube Manager" intro="Choose which category each interview appears under on the website’s Episodes page." />
+        {tabs}
+        <div className="mt-6">
+          <CategoriesPanel />
+        </div>
+      </div>
+    )
   if (state.status === 'missing') return <NeedsMigration title="YouTube Manager" />
 
   async function sync() {
@@ -93,6 +109,7 @@ export default function YouTubePage() {
           )
         }
       />
+      {tabs}
       {ready?.status && (
         <p className="mt-2 text-sm text-muted">
           Last synced {when(ready.status.last_sync_at) || 'never'}.{ready.status.last_error && ready.status.last_error_at && (!ready.status.last_sync_at || ready.status.last_error_at > ready.status.last_sync_at) && <span className="text-danger"> Last attempt failed: {ready.status.last_error}</span>}

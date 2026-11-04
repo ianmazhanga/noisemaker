@@ -1,5 +1,6 @@
 import { Seo } from '../components/seo/Seo'
 import { Hero } from '../components/home/Hero'
+import { NewEpisode } from '../components/home/NewEpisode'
 import { Conversations } from '../components/home/Conversations'
 import { LatestConversations } from '../components/home/LatestConversations'
 import { Moments } from '../components/home/Moments'
@@ -12,6 +13,7 @@ export default function HomePage() {
     <>
       <Seo jsonLd={[seriesLd(), websiteLd()]} />
       <Hero />
+      <NewEpisode />
       <Conversations />
       <LatestConversations />
       <Moments />

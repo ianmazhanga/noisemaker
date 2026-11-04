@@ -7,10 +7,12 @@ import { ExternalButton } from '../components/ui/Button'
 import { YouTubeIcon } from '../components/ui/BrandIcons'
 import { SocialLinks } from '../components/ui/SocialLinks'
 import { SITE } from '../config/site'
+import { useCategoryVersion } from '../lib/categoryOverrides'
 import { countByTopic, getEpisodesByGuest, getGuests, getTopics, guestCredits } from '../lib/content'
 import { breadcrumbLd, seriesLd } from '../lib/structuredData'
 
 export default function AboutPage() {
+  useCategoryVersion()
   const topics = getTopics()
   const guests = getGuests()
 

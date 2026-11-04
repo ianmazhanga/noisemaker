@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { SITE } from '../src/config/site.ts'
 import { EPISODES } from '../src/data/episodes.ts'
 import { CLIPS } from '../src/data/clips.ts'
-import { buildCatalog } from '../src/lib/catalog.ts'
+import { buildCatalog, pickFeatured } from '../src/lib/catalog.ts'
 
 // Use the same catalogue merge as the UI, including removals and curated slugs.
 const snapshot = JSON.parse(await readFile('src/data/youtube.json', 'utf8'))
@@ -21,9 +21,14 @@ const website = {
   alternateName: 'Noisemakers', url: `${SITE.url}/`,
   publisher: { '@id': organization['@id'] }, inLanguage: 'en',
 }
+// The homepage's NEW EPISODE section, so search engines see the newest interview first.
+const featured = pickFeatured(episodes)
+const featuredHtml = featured
+  ? `<section><h2>New episode</h2><h3><a href="/episodes/${escape(featured.slug)}">${escape(featured.title)}</a></h3><p>${escape(featured.summary)}</p><a href="https://www.youtube.com/watch?v=${escape(featured.youtubeId)}">Watch the latest interview on YouTube</a></section>`
+  : ''
 const listing = episodes.map((e) => `<li><a href="/episodes/${escape(e.slug)}">${escape(e.title)}</a><p>${escape(e.summary)}</p></li>`).join('')
 const pages = [
-  { path: '/', title: `${SITE.name} | Inspirational Interviews & Stories`, description: SITE.description, body: `<h1>${escape(SITE.name)}</h1><p>${escape(SITE.description)}</p><h2>Latest interviews and stories</h2><ul>${listing}</ul>` },
+  { path: '/', title: `${SITE.name} | Inspirational Interviews & Stories`, description: SITE.description, body: `<h1>${escape(SITE.name)}</h1><p>${escape(SITE.description)}</p>${featuredHtml}<h2>Latest interviews and stories</h2><ul>${listing}</ul>` },
   { path: '/episodes', title: `Episodes | ${SITE.name}`, description: 'Explore inspirational interviews and life stories from Noisemakers News.', body: `<h1>Episodes</h1><ul>${listing}</ul>` },
   ...[
     ['/clips', 'Clips', 'Short highlights from Noisemakers News interviews and conversations.'],

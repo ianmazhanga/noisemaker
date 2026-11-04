@@ -38,6 +38,8 @@ export interface Episode {
   points?: string[]
   /** Hand-assigned topic. Episodes imported automatically from YouTube have none until one is set. */
   topic?: TopicSlug
+  /** Where the topic came from: hand-written, suggested from YouTube's title and description, or chosen in the dashboard. */
+  topicSource?: 'curated' | 'auto' | 'admin'
   /** Guest IDs from src/data/guests.ts, only where YouTube names them. */
   guestIds: string[]
   /** ISO 8601 publish time as reported by YouTube */
