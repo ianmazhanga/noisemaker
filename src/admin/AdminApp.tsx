@@ -233,7 +233,7 @@ function Dashboard({ session, profile, refreshProfile, onSignOut }: { session: S
         Video Production
       </SideLink>
       <SideLink to="/admin/shorts" icon={<Scissors className={icon} aria-hidden />}>
-        AI Shorts Generator
+        AI Shorts (optional)
       </SideLink>
       <SideLink to="/admin/youtube" icon={<YouTubeIcon className={icon} />}>
         YouTube Manager

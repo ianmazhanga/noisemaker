@@ -8,10 +8,11 @@ import { useAdmin, friendlyError } from '../context'
 import { Spinner } from '../AdminApp'
 import { PostCard } from './PostCard'
 import { CreateTab } from './CreateTab'
+import { PostVideoTab } from './PostVideoTab'
 import { AccountsTab, AnalyticsTab, CalendarTab } from './InfoTabs'
 import { channelVideos, defaultZone, isMissingTable, type AccountRow, type PostRow } from './shared'
 
-const TABS = { posts: 'Posts', create: 'Create', calendar: 'Calendar', accounts: 'Accounts', analytics: 'Analytics' } as const
+const TABS = { new: 'Post a video', posts: 'All posts', create: 'AI drafts (optional)', calendar: 'Calendar', accounts: 'Accounts', analytics: 'Analytics' } as const
 type Tab = keyof typeof TABS
 
 export default function SocialPage() {
@@ -26,7 +27,9 @@ export default function SocialPage() {
   const [query, setQuery] = useState('')
   const videos = useMemo(() => channelVideos(), [])
 
-  const tab = ((params.get('tab') ?? 'posts') in TABS ? params.get('tab') ?? 'posts' : 'posts') as Tab
+  // Links to a particular post (from notifications or the calendar) open the full list; otherwise start at Post a video.
+  const fallback = params.get('open') || params.get('status') ? 'posts' : 'new'
+  const tab = ((params.get('tab') ?? fallback) in TABS ? (params.get('tab') ?? fallback) : fallback) as Tab
   const status = (POST_STATUSES as string[]).includes(params.get('status') ?? '') ? (params.get('status') as PostStatus) : 'all'
   const openId = params.get('open')
 
@@ -82,7 +85,7 @@ export default function SocialPage() {
         <div>
           <h1 className="font-display text-3xl font-[800] tracking-[-0.02em] md:text-4xl">Social Media Manager</h1>
           <p className="mt-1 text-muted">
-            The AI writes drafts; {isOwner ? 'you and the other owner' : 'an owner'} approve{isOwner ? '' : 's'} them before anything goes out.
+            Pick a video, choose where it goes, write the caption, then post or schedule it. {isOwner ? 'Only owners' : 'An owner'} can publish, so nothing goes out by accident.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -108,7 +111,7 @@ export default function SocialPage() {
             key={t}
             type="button"
             aria-current={tab === t ? 'page' : undefined}
-            onClick={() => go({ tab: t === 'posts' ? null : t, open: null })}
+            onClick={() => go({ tab: t === 'new' ? null : t, open: null, status: null, video: null })}
             className={`-mb-px min-h-11 border-b-2 px-4 font-semibold whitespace-nowrap ${tab === t ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink'}`}
           >
             {TABS[t]}
@@ -126,7 +129,9 @@ export default function SocialPage() {
       <div className="mt-6">
         {!posts && !error ? (
           <Spinner label="Loading posts…" />
-        ) : !posts ? null : tab === 'create' ? (
+        ) : !posts ? null : tab === 'new' ? (
+          <PostVideoTab posts={posts} accounts={accounts} onChanged={changed} />
+        ) : tab === 'create' ? (
           <CreateTab videos={videos} posts={posts} onSaved={changed} />
         ) : tab === 'calendar' ? (
           <CalendarTab posts={posts} zone={zone} />
