@@ -83,7 +83,7 @@ Then, for each platform, create a developer app, add its keys in Vercel, redeplo
 |---|---|---|
 | Facebook + Instagram (one sign-in) | `META_APP_ID`, `META_APP_SECRET` (optional `META_PAGE_ID`) | Page posts (text, link, image, video), Instagram images and Reels, follower counts |
 | X | `X_CLIENT_ID`, `X_CLIENT_SECRET` | Text posts, follower count (posting needs an X API plan that allows it) |
-| TikTok | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | Video uploads. These are private to the account until TikTok audits the app. |
+| TikTok `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | Video uploads. These are private to the account until TikTok audits the app. | Optional `TIKTOK_SCOPES` (comma-separated) if the app has fewer scopes than the default `user.info.basic,user.info.stats,video.list,video.upload,video.publish`. Redirect URI to register in Login Kit: `https://noisemakersnews.com/api/oauth/callback`. Sandbox: use the Sandbox client key and secret, and add the TikTok account you will connect as a Sandbox target user. |
 | YouTube | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Shorts uploads, analytics |
 
 **Platform review:** Meta and TikTok review apps before they can post publicly for an account. Plan for this: the review can take days or weeks.
