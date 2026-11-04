@@ -55,9 +55,16 @@ function score(text: string, rules: Rule[]): number {
   return rules.reduce((total, [pattern, weight]) => total + (pattern.test(text) ? weight : 0), 0)
 }
 
+/** A phrase worth this much on its own is a strong clue; weaker words only add support. */
+const STRONG = 2
+
+/** Does any strong phrase for this category appear in the text? */
+const hasStrongClue = (text: string, rules: Rule[]) => rules.some(([pattern, weight]) => weight >= STRONG && pattern.test(text))
+
 /**
- * The best category for an interview, or null when it isn't clear. Needs at least 3 points
- * and twice the runner-up's score (ties and close calls go to review).
+ * The best category for an interview, or null when it isn't clear. Needs at least one strong
+ * clue (a word like "journey" or "hope" alone isn't enough), at least 3 points, and twice the
+ * runner-up's score (ties and close calls go to review).
  */
 export function suggestTopic(title: string, description: string[] | string, known: string[] = Object.keys(CATEGORY_RULES)): Suggestion {
   const t = title.toLowerCase()
@@ -69,6 +76,6 @@ export function suggestTopic(title: string, description: string[] | string, know
   }
   const ranked = Object.entries(scores).sort((a, b) => b[1] - a[1])
   const [best, second] = ranked
-  if (!best || best[1] < 3 || (second && best[1] < second[1] * 2)) return { topic: null, scores }
+  if (!best || best[1] < 3 || (second && best[1] < second[1] * 2) || !hasStrongClue(`${t} ${d}`, CATEGORY_RULES[best[0]])) return { topic: null, scores }
   return { topic: best[0], scores }
 }

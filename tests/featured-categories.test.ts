@@ -88,3 +88,7 @@ test('on the real catalogue, the featured interview is the newest full episode',
   assert.ok(!episodes.some((e) => e.publishedAt > featured.publishedAt && !/trailer|teaser/i.test(e.title)))
   assert.ok(featured.summary.length > 0)
 })
+
+test('a weak word like "journey" alone never decides a category', () => {
+  assert.equal(suggestTopic("A Veterinarian's Journey Across 4 Continents", ['Experiences of living abroad.']).topic, null)
+})
