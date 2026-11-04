@@ -13,6 +13,7 @@ const BooksPage = lazy(() => import('./pages/BooksPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const TellYourStoryPage = lazy(() => import('./pages/TellYourStoryPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const TermsPage = lazy(() => import('./pages/TermsPage'))
 const NewsPage = lazy(() => import('./pages/NewsPage'))
 const NewsArticlePage = lazy(() => import('./pages/NewsArticlePage'))
 const NewsletterPage = lazy(() => import('./pages/NewsletterPage'))
@@ -82,6 +83,7 @@ const router = createBrowserRouter([
       { path: 'about', element: <AboutPage /> },
       { path: 'tell-your-story', element: <TellYourStoryPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'terms-of-service', element: <TermsPage /> },
       { path: 'news', element: <NewsPage /> },
       { path: 'news/:slug', element: <NewsArticlePage /> },
       { path: 'newsletter', element: <NewsletterPage /> },

@@ -93,9 +93,14 @@ export function Footer() {
           <p>
             © {SITE.since === YEAR ? YEAR : `${SITE.since}–${YEAR}`} {SITE.channelName}
           </p>
-          <Link to="/privacy" className="inline-flex min-h-9 items-center hover:text-paper">
-            Privacy
-          </Link>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-6">
+            <Link to="/terms-of-service" className="inline-flex min-h-9 items-center hover:text-paper">
+              Terms of Service
+            </Link>
+            <Link to="/privacy" className="inline-flex min-h-9 items-center hover:text-paper">
+              Privacy Policy
+            </Link>
+          </nav>
         </div>
       </div>
     </footer>
