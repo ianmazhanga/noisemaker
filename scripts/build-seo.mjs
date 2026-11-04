@@ -70,7 +70,7 @@ for (const page of pages) {
     .replace(/<meta\s+[^>]*(?:name="(?:description|robots|twitter:[^"]+)"|property="og:[^"]+")[^>]*>/gi, '')
     .replace(/<link\s+[^>]*rel="canonical"[^>]*>/gi, '')
     .replace('</head>', `${head}\n</head>`)
-    .replace('<div id="root"></div>', `<div id="root">${nav}<main id="main" class="wrap py-12">${page.body}</main></div>`)
+    .replace('<div id="root"></div>', `<div id="root"><section data-seo-fallback>${nav}<main id="main" class="wrap py-12">${page.body}</main></section></div>`)
   const directory = page.path === '/' ? 'dist' : join('dist', page.path.slice(1))
   await mkdir(directory, { recursive: true })
   await writeFile(join(directory, 'index.html'), html)

@@ -10,6 +10,20 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="theme-color" content="#f1eee7" />
+    <!-- The SEO snapshot is replaced (not hydrated) by React. Keep it from
+         flashing while JS starts, but reveal it if the app fails to load.
+         Inline CSS works before assets load and with our existing CSP. -->
+    <style>
+      @media (scripting: enabled) {
+        #root > [data-seo-fallback] {
+          visibility: hidden;
+          animation: seo-fallback-reveal 0s 8s forwards;
+        }
+      }
+      @keyframes seo-fallback-reveal {
+        to { visibility: visible; }
+      }
+    </style>
 
     <!-- Defaults; each route updates these at runtime via <Seo /> -->
     <title>Noisemakers News | Inspirational Interviews &amp; Stories</title>
