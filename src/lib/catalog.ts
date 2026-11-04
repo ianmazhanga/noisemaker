@@ -11,9 +11,13 @@
  * - If the snapshot is empty or unreadable, the hand-written lists are used
  *   as they are.
  *
- * Only type imports here, so tests can run this file directly in Node.
+ * - A new video's category is suggested from its title and description
+ *   (src/lib/categorize.ts), or left empty for review when that isn't clear.
+ *
+ * Only type imports and import-free modules here, so tests can run this file directly in Node.
  */
-import type { Clip, Episode, SyncedVideo, YouTubeSnapshot } from '../types/content'
+import type { Clip, Episode, SyncedVideo, TopicSlug, YouTubeSnapshot } from '../types/content'
+import { suggestTopic } from './categorize.ts'
 
 const byNewest = <T extends { publishedAt: string }>(a: T, b: T) => b.publishedAt.localeCompare(a.publishedAt)
 
@@ -29,6 +33,7 @@ function autoEpisode(v: SyncedVideo): Episode {
   const summary = summarise(v.description)
   // The summary is the first paragraph; don't repeat it in the description unless it had to be shortened.
   const usedWhole = summary && summary === (v.description[0] ?? '').replace(/\s+/g, ' ').trim()
+  const topic = suggestTopic(v.title, v.description).topic
   return {
     slug: v.slug ?? v.youtubeId,
     youtubeId: v.youtubeId,
@@ -40,6 +45,7 @@ function autoEpisode(v: SyncedVideo): Episode {
     durationSeconds: v.durationSeconds,
     hd: v.hd,
     restricted: v.restricted || undefined,
+    ...(topic ? { topic: topic as TopicSlug, topicSource: 'auto' as const } : {}),
   }
 }
 
@@ -80,7 +86,7 @@ export function buildCatalog(snapshot: YouTubeSnapshot | null | undefined, curat
     const curatedEpisode = episodeById.get(v.youtubeId)
     const curatedClip = clipById.get(v.youtubeId)
     // A hand-written entry decides whether a video is an episode or a clip.
-    if (curatedEpisode) episodes.push({ ...curatedEpisode, restricted })
+    if (curatedEpisode) episodes.push({ ...curatedEpisode, restricted, ...(curatedEpisode.topic ? { topicSource: 'curated' as const } : {}) })
     else if (curatedClip) clips.push({ ...curatedClip, restricted })
     else if (v.kind === 'episode') episodes.push(autoEpisode(v))
     else clips.push(autoClip(v))
@@ -101,3 +107,13 @@ export function buildCatalog(snapshot: YouTubeSnapshot | null | undefined, curat
 
   return { episodes: episodes.sort(byNewest), clips: linkedClips.sort(byNewest), hidden }
 }
+
+/** Uploads that aren't interviews, even when they're long enough to count as episodes. */
+const NOT_AN_INTERVIEW = /\b(trailers?|teasers?|coming soon|promo)\b/i
+
+/**
+ * The episode to feature on the homepage: the newest one that's a real interview. Shorts are
+ * never episodes; trailers and teasers are skipped. Falls back to the newest episode so the
+ * homepage always has something to show.
+ */
+export const pickFeatured = (episodes: Episode[]): Episode | undefined => episodes.find((e) => !NOT_AN_INTERVIEW.test(e.title)) ?? episodes[0]

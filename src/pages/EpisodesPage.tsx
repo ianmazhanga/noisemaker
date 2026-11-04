@@ -6,6 +6,7 @@ import { PageIntro } from '../components/ui/PageIntro'
 import { EpisodeGridCard } from '../components/episodes/EpisodeCards'
 import { buttonClass } from '../components/ui/buttonClass'
 import { SITE } from '../config/site'
+import { useCategoryVersion } from '../lib/categoryOverrides'
 import { countByTopic, getEpisodes, getGuest, getTopics, isTopicSlug, searchEpisodes } from '../lib/content'
 import { breadcrumbLd } from '../lib/structuredData'
 
@@ -15,6 +16,8 @@ export default function EpisodesPage() {
   const [params, setParams] = useSearchParams()
   const inputRef = useRef<HTMLInputElement>(null)
   const all = getEpisodes()
+  // Categories chosen in the dashboard arrive after the page loads.
+  const categories = useCategoryVersion()
   const topics = getTopics()
 
   const query = params.get('q') ?? ''
@@ -33,12 +36,14 @@ export default function EpisodesPage() {
   }
 
   const results = useMemo(() => {
+    // Recalculate when dashboard categories arrive: they change episodes' topics in place.
+    void categories
     let list = all
     if (topic) list = list.filter((e) => e.topic === topic)
     if (guest) list = list.filter((e) => e.guestIds.includes(guest.id))
     list = searchEpisodes(query, list)
     return sort === 'oldest' ? [...list].reverse() : list
-  }, [all, topic, guest, query, sort])
+  }, [all, topic, guest, query, sort, categories])
 
   const filtered = Boolean(query || topic || guest)
   const clearAll = () => {

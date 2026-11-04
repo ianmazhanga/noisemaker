@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import type { Episode } from '../../types/content'
 import { getGuestsFor, getTopic } from '../../lib/content'
+import { useCategoryVersion } from '../../lib/categoryOverrides'
 import { youtubeWatchUrl } from '../../lib/youtube'
 import { formatDate, formatDuration, formatRuntime, spokenDuration } from '../../lib/format'
 import { PlayIcon } from '../player/PlayIcon'
@@ -18,6 +19,7 @@ function Duration({ seconds, className = '' }: { seconds: number; className?: st
 }
 
 export function TopicLabel({ episode, dark }: { episode: Episode; dark?: boolean }) {
+  useCategoryVersion()
   const topic = getTopic(episode.topic)
   if (!topic && !episode.series) return null
   return (

@@ -13,18 +13,36 @@ import { GUESTS } from '../data/guests'
 import { TOPICS } from '../data/topics'
 import snapshot from '../data/youtube.json'
 import { HOMEPAGE } from '../config/site'
-import { buildCatalog } from './catalog'
+import { buildCatalog, pickFeatured } from './catalog'
 import type { Book, Clip, Episode, Guest, Topic, TopicSlug, YouTubeSnapshot } from '../types/content'
 
 /** Newest first. */
 const { episodes, clips } = buildCatalog(snapshot as YouTubeSnapshot, EPISODES, CLIPS)
+
+// What each episode's category was before any dashboard choice, so a cleared choice can be undone.
+const builtTopics = new Map(episodes.map((e) => [e.youtubeId, { topic: e.topic, topicSource: e.topicSource }]))
+
+/**
+ * Applies the categories chosen in the dashboard (see categoryOverrides.ts). A choice beats the
+ * hand-written and automatic categories; videos without one go back to those.
+ */
+export function applyTopicOverrides(chosen: Map<string, string>) {
+  for (const e of episodes) {
+    const pick = chosen.get(e.youtubeId)
+    if (pick && TOPICS.some((t) => t.slug === pick)) Object.assign(e, { topic: pick as TopicSlug, topicSource: 'admin' as const })
+    else Object.assign(e, builtTopics.get(e.youtubeId))
+  }
+}
+
+/** The category an episode has without any dashboard choice: hand-written, automatic, or none. */
+export const getBuiltTopic = (youtubeId: string) => builtTopics.get(youtubeId) ?? { topic: undefined, topicSource: undefined }
 
 export const getEpisodes = (): Episode[] => episodes
 export const getEpisode = (slug: string | undefined) => episodes.find((e) => e.slug === slug)
 
 /** The pinned episode, or the newest. Undefined only if the channel has no episodes at all. */
 export function getLeadEpisode(): Episode | undefined {
-  return (HOMEPAGE.leadEpisode !== 'latest' && getEpisode(HOMEPAGE.leadEpisode)) || episodes[0]
+  return (HOMEPAGE.leadEpisode !== 'latest' && getEpisode(HOMEPAGE.leadEpisode)) || pickFeatured(episodes)
 }
 
 /** Newest episodes, excluding the given slugs. */

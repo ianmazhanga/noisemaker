@@ -11,11 +11,13 @@ import { SectionHeading } from '../ui/SectionHeading'
 import { buttonClass } from '../ui/buttonClass'
 import { YouTubeIcon } from '../ui/BrandIcons'
 
-/** Editorial feed: the lead episode large, the next few as a list beside it. */
+/** Editorial feed: the newest episode after the featured one large, the next few as a list beside it. */
 export function LatestConversations() {
-  const lead = getLeadEpisode()
+  // The featured episode has its own section above (NEW EPISODE), so start with the one after it.
+  const featured = getLeadEpisode()
+  const lead = (featured && getLatestEpisodes(1, [featured.slug])[0]) ?? featured
   if (!lead) return <NoEpisodes />
-  const more = getLatestEpisodes(4, [lead.slug])
+  const more = getLatestEpisodes(4, [lead.slug, ...(featured ? [featured.slug] : [])])
   const guests = getGuestsFor(lead.guestIds)
   const total = getEpisodes().length
 

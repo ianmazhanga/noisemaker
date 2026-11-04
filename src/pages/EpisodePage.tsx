@@ -9,12 +9,14 @@ import { Thumb } from '../components/ui/Thumb'
 import { ShareButton } from '../components/ui/ShareButton'
 import { buttonClass } from '../components/ui/buttonClass'
 import { getClipsForEpisode, getEpisode, getGuestsFor, getRelatedEpisodes, getSeriesParts, getTopic } from '../lib/content'
+import { useCategoryVersion } from '../lib/categoryOverrides'
 import { formatLongDate, formatRuntime } from '../lib/format'
 import { breadcrumbLd, episodeVideoLd } from '../lib/structuredData'
 import { shareImage, youtubeWatchUrl } from '../lib/youtube'
 import NotFoundPage from './NotFoundPage'
 
 export default function EpisodePage() {
+  useCategoryVersion()
   const { slug } = useParams()
   const episode = getEpisode(slug)
   if (!episode) return <NotFoundPage />
