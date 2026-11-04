@@ -37,7 +37,8 @@ const pages = [
     ['/about', 'About', 'Learn about Noisemakers News and its inspirational interviews and impactful stories.'],
     ['/tell-your-story', 'Tell your story', 'Share your story with Noisemakers News or request an introductory conversation.'],
     ['/newsletter', 'Newsletter', 'Subscribe to updates, conversations and stories from Noisemakers News.'],
-    ['/privacy', 'Privacy', 'How Noisemakers News handles your personal data and story submissions.'],
+    ['/privacy', 'Privacy Policy', 'How Noisemakers News handles your personal data and story submissions.'],
+    ['/terms-of-service', 'Terms of Service', 'The rules for using the Noisemakers News website, sending a story, and how the Noisemakers team publishes to social media.'],
   ].map(([path, title, description]) => ({ path, title: `${title} | ${SITE.name}`, description, body: `<h1>${escape(title)}</h1><p>${escape(description)}</p>` })),
   ...episodes.map((e) => {
     const image = `https://i.ytimg.com/vi/${e.youtubeId}/${e.hd ? 'maxresdefault' : 'sddefault'}.jpg`
