@@ -7,7 +7,8 @@ import { INTERVIEW_TOOL_KEYS, INTERVIEW_TOOLS, OWNER_PROJECT_STATUSES, PROJECT_S
 import { TIME_ZONES, utcToZoned, zonedToUtc } from '../lib/social'
 import { useAdmin, friendlyError } from './context'
 import { Spinner } from './AdminApp'
-import { Badge, Card, ConfirmButton, Drawer, Empty, NeedsMigration, Notice, PageHeader, Warnings } from './ui'
+import { Badge, Card, ConfirmButton, Drawer, Empty, NeedsMigration, Notice, PageHeader, Tabs, Warnings } from './ui'
+import VideoLibrary from './VideoLibrary'
 import { api, day, labelClass, STATUS_TONE, useLoad, when, memberName, type Member } from './lib'
 
 export interface Project {
@@ -33,7 +34,25 @@ export interface Project {
   published_at: string | null
 }
 
+/** Video Production: the video library first; interview planning (with the optional AI assistant) one tab away. */
 export default function VideoPage() {
+  const [params, setParams] = useSearchParams()
+  const view = params.get('view') === 'planning' || params.get('open') ? 'planning' : 'library'
+  if (view === 'planning') return <InterviewPlanning onLibrary={() => setParams(new URLSearchParams())} />
+  return (
+    <div className="max-w-7xl">
+      <PageHeader title="Video Production" intro="Upload videos you’ve finished in CapCut, keep them in one place, and post them to your social media." />
+      <div className="mt-6">
+        <Tabs label="Video Production" value={'library' as 'library' | 'planning'} onChange={(t) => t === 'planning' && setParams({ view: 'planning' })} tabs={{ library: 'Video library', planning: 'Interview planning' }} />
+      </div>
+      <div className="mt-6">
+        <VideoLibrary />
+      </div>
+    </div>
+  )
+}
+
+function InterviewPlanning({ onLibrary }: { onLibrary: () => void }) {
   const { db, isWriter } = useAdmin()
   const [params, setParams] = useSearchParams()
   const [showArchived, setShowArchived] = useState(false)
@@ -49,9 +68,12 @@ export default function VideoPage() {
 
   return (
     <div className="max-w-[90rem]">
+      <div className="mb-6">
+        <Tabs label="Video Production" value={'planning' as 'library' | 'planning'} onChange={(t) => t === 'library' && onLibrary()} tabs={{ library: 'Video library', planning: 'Interview planning' }} />
+      </div>
       <PageHeader
-        title="Video Production"
-        intro="Every video from the first idea to YouTube: interviews, preparation, scripts, recording, editing and approval. Only an owner marks a video ready to publish."
+        title="Interview planning"
+        intro="Plan interviews from the first idea to YouTube. The AI interview assistant here is optional and needs an OpenAI key; everything else works without it."
         actions={
           <>
             <label className="flex items-center gap-2 text-sm">
