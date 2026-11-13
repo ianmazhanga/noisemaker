@@ -2,6 +2,16 @@
   "channelId": "UCD49Bigk35BXat_YPimii0Q",
   "videos": [
     {
+      "youtubeId": "3EX4MgoOJmc",
+      "kind": "short",
+      "title": "Learning Mbira",
+      "description": [],
+      "publishedAt": "2026-11-13T01:36:16Z",
+      "durationSeconds": 90,
+      "hd": true,
+      "restricted": false
+    },
+    {
       "youtubeId": "KmzntBFr2vE",
       "kind": "short",
       "title": "Pelvic Floor Exercises | Dr Martina Mapa",
@@ -541,7 +551,7 @@
       "youtubeId": "SZEGppMOPMM",
       "kind": "episode",
       "slug": "dr-thomas-achia-fatherhood-legacy",
-      "title": "Why I am Proud To Be My Father's Son Dr Thomas Achia | Fatherhood Lessons, Legacy & Leadership",
+      "title": "Why I am Proud To Be My Father's Son Dr Thomas Achia | Fatherhood Lessons, Legacy& Leadershipparent",
       "description": [
         "Dr Thomas Achia came prepared to give a tribute to his father Engineer Joshua Achia. The conversation starts with Dr Thomas remembering his early child hood memories with his father. He explains how he was raised as a boy by a very educated man in the early seventies.",
         "He talks about navigating teenage years and how he learnt about women by observing how his father did it. He explains the dynamics of communication during that time. He also covers several topics that he learnt from his father on parenting and building a strong work ethic, leadership and spirituality.",
