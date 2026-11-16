@@ -2,6 +2,17 @@
   "channelId": "UCD49Bigk35BXat_YPimii0Q",
   "videos": [
     {
+      "youtubeId": "tNmurphkkwA",
+      "kind": "episode",
+      "slug": "thank-you",
+      "title": "Thank you",
+      "description": [],
+      "publishedAt": "2026-11-16T04:05:43Z",
+      "durationSeconds": 253,
+      "hd": true,
+      "restricted": false
+    },
+    {
       "youtubeId": "AbgG-ljkElQ",
       "kind": "episode",
       "slug": "mbira-conversation-with-joel-laviolette",
